@@ -1,0 +1,161 @@
+{
+  "model_version": "demo-synthetic-v1",
+  "classes": [
+    "csf_like",
+    "saline_like",
+    "saliva_like",
+    "other"
+  ],
+  "feature_columns": [
+    "geo_inner_radius",
+    "geo_outer_radius",
+    "geo_ring_width",
+    "geo_ring_width_ratio",
+    "geo_diameter",
+    "geo_area",
+    "geo_circumference",
+    "geo_circularity",
+    "geo_eccentricity_proxy",
+    "geo_symmetry",
+    "geo_center_displacement",
+    "int_mean",
+    "int_median",
+    "int_min",
+    "int_max",
+    "int_std",
+    "int_central_mean",
+    "int_central_std",
+    "int_ring_mean",
+    "int_ring_std",
+    "int_background_mean",
+    "int_center_to_background_gradient",
+    "int_ring_to_center_contrast",
+    "radial_peak_position",
+    "radial_slope_mean",
+    "radial_slope_max",
+    "radial_uniformity",
+    "radial_intensity_range",
+    "radial_n_transitions",
+    "color_center_r_mean",
+    "color_center_r_std",
+    "color_center_g_mean",
+    "color_center_g_std",
+    "color_center_b_mean",
+    "color_center_b_std",
+    "color_center_hue_mean",
+    "color_center_hue_std",
+    "color_center_saturation_mean",
+    "color_center_saturation_std",
+    "color_center_value_mean",
+    "color_center_value_std",
+    "color_center_lab_a_mean",
+    "color_center_lab_a_std",
+    "color_center_lab_b_mean",
+    "color_center_lab_b_std",
+    "color_ring_r_mean",
+    "color_ring_r_std",
+    "color_ring_g_mean",
+    "color_ring_g_std",
+    "color_ring_b_mean",
+    "color_ring_b_std",
+    "color_ring_hue_mean",
+    "color_ring_hue_std",
+    "color_ring_saturation_mean",
+    "color_ring_saturation_std",
+    "color_ring_value_mean",
+    "color_ring_value_std",
+    "color_ring_lab_a_mean",
+    "color_ring_lab_a_std",
+    "color_ring_lab_b_mean",
+    "color_ring_lab_b_std",
+    "color_saturation_gradient",
+    "tex_glcm_contrast",
+    "tex_glcm_homogeneity",
+    "tex_glcm_energy",
+    "tex_glcm_correlation",
+    "tex_glcm_entropy",
+    "tex_lbp_entropy",
+    "spread_radius_normalized",
+    "spread_area_normalized",
+    "spread_diffusion_index",
+    "spread_directional_variance"
+  ],
+  "trained_on": "2026-09-30T16:36:04.530208+00:00",
+  "n_train_samples": 210,
+  "n_dropped_no_halo": 10,
+  "synthetic": true,
+  "disclaimer": "SYNTHETIC/DEMO DATA \u2014 not derived from real biological samples, not clinically validated.",
+  "metrics": {
+    "accuracy": 0.7447,
+    "precision_macro": 0.7367,
+    "recall_macro": 0.7527,
+    "f1_macro": 0.738,
+    "confusion_matrix": [
+      [
+        5,
+        4,
+        0,
+        0
+      ],
+      [
+        5,
+        9,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        8,
+        0
+      ],
+      [
+        1,
+        0,
+        2,
+        13
+      ]
+    ],
+    "confusion_matrix_labels": [
+      "csf_like",
+      "saline_like",
+      "saliva_like",
+      "other"
+    ],
+    "roc_auc_per_class": {
+      "csf_like": 0.8363,
+      "saline_like": 0.8896,
+      "saliva_like": 0.9712,
+      "other": 0.9657
+    },
+    "pr_auc_per_class": {
+      "csf_like": 0.4137,
+      "saline_like": 0.8084,
+      "saliva_like": 0.7603,
+      "other": 0.9559
+    },
+    "csf_like_sensitivity": 0.5556,
+    "csf_like_specificity": 0.8421,
+    "csf_like_ppv": 0.4545,
+    "csf_like_npv": 0.8889,
+    "csf_like_confusion": {
+      "tp": 5,
+      "tn": 32,
+      "fp": 6,
+      "fn": 4
+    },
+    "note": "Computed on SYNTHETIC data. NOT a clinical sensitivity/specificity estimate.",
+    "calibration": {
+      "expected_calibration_error": 0.0984,
+      "brier_score": 0.0905
+    },
+    "disclaimer": "All metrics computed on SYNTHETIC/DEMO data. Not a clinical validation study.",
+    "n_test_samples": 47,
+    "n_dropped_no_halo": 5,
+    "halo_gate_check_on_invalid_class": {
+      "invalid_samples_tested": 8,
+      "correctly_rejected": 4,
+      "rejection_rate": 0.5
+    }
+  }
+}
