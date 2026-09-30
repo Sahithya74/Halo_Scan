@@ -1,0 +1,21 @@
+# Version-pinned only for packages NOT already present in the system Python this venv
+# inherits from (created with --system-site-packages). numpy/scipy/scikit-learn/pandas/
+# matplotlib/joblib/pillow/httpx are left unpinned so pip reuses the already-installed
+# system versions instead of re-downloading over a very slow network connection.
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+opencv-python-headless
+scikit-image
+shap
+pytest
+numpy
+scipy
+scikit-learn
+pandas
+matplotlib
+joblib
+pillow
+httpx

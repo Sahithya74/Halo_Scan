@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Generated data / models (large, reproducible via scripts)
+backend/datasets/synthetic/*
+!backend/datasets/synthetic/.gitkeep
+!backend/datasets/synthetic/samples/
+!backend/datasets/synthetic/metadata.csv
+backend/trained_models/*.joblib
+backend/trained_models/*.png
+backend/analysis_history.db
+backend/uploads/
+
+# Flutter / Dart
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.packages
+flutter_app/build/
+flutter_app/*.iml
+flutter_app/.idea/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
