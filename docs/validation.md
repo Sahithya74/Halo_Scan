@@ -53,15 +53,48 @@ not a defect to "fix" — see above.
 
 ### Halo-detection gate check (synthetic `invalid`/no-halo class, n=8)
 
-Correctly rejected (NO_HALO_DETECTED, never reaches the classifier): 4/8 (50%). This is a
-genuine, currently-mediocre result worth being honest about: half of the synthetic
-"insufficient mixture ratio" samples still produced a detectable-enough ring for
-`halo_detection.py` to accept. Two plausible causes, not yet root-caused: (1) the
-generator's `invalid` class still renders a soft central-stain edge that the radial-profile
-method's peak detector picks up as a weak transition, or (2) the `halo_width` detection
-threshold (`5% of outer_radius`, `app/image_processing/halo_detection.py:209`) is too
-permissive for small rings. Tightening this is a reasonable next step before trusting the
-gate on real photos — tracked here rather than silently left out of the report.
+Correctly rejected (NO_HALO_DETECTED, never reaches the classifier): **5/8 (62.5%)**,
+up from an initial 50%. Investigated and partially fixed in this pass:
+
+**Root cause #1 (fixed, generator-level):** `datasets/synthetic_generator.py`'s `invalid`
+class used to render `inner_radius = outer_radius * 0.92` — an intentional-but-wrong ~8%
+"fuzzy edge" width, which happened to exceed `halo_detection.py`'s own 5%-of-outer-radius
+width threshold for calling something a ring. Fixed by setting `inner_radius = outer_radius`
+exactly (a single soft-edged stain with no separate ring band at all). This alone improved
+rejection from 50% to 62.5% with **zero effect on the classifier's metrics** (confirmed:
+re-running training/evaluation after the fix reproduced the exact same confusion matrix,
+ROC-AUC, and calibration numbers above, since the fix only touches the `invalid` class,
+which the classifier never trains or evaluates on).
+
+**Root cause #2 (diagnosed, not fixed — see below):** the remaining 3/8 false positives
+all share the same pattern: `app/image_processing/halo_detection.py`'s Canny-edge and
+Hough-circle methods contribute nothing (`None, None`) — and diagnosis against a sample of
+genuine `csf_like` training images found this is actually true for **essentially all**
+images this generator produces (soft `smoothstep`-blended gradients don't give Canny or
+Hough the crisp edges they need), not just the `invalid` class. That leaves the radial-profile
+and segmentation (Otsu + percentile) methods as the only two that ever contribute, and
+`_segmentation_estimate`'s "inner stain" sub-threshold (darkest 25% of masked pixels) turns
+out to be mostly a **geometric artifact**: for any region with a monotonically increasing
+radial intensity gradient, the 25%-of-area darkest pixels fall at approximately 50% of the
+radius purely from area ∝ r² scaling — independent of whether a real second ring exists.
+Observed inner/outer ratios from this sub-threshold cluster around ~0.51-0.53 for genuine
+double rings and ~0.60-0.79 for the remaining false-positive `invalid` blobs — a real but
+subtle difference, not yet confidently separable with 8 test samples.
+
+**A more aggressive fix was tried and reverted.** Requiring at least 2 independent methods
+to agree on the outer radius (not just segmentation alone) correctly rejected all 8/8
+invalid samples, but since Canny/Hough never contribute for *any* class on this generator's
+renders, it also meant "only segmentation found an outer radius" is the *normal* case for
+genuine halos too — applying that requirement dropped 197 of 220 training samples and
+reduced `csf_like`/`saline_like` to **zero** training examples each, breaking calibration
+entirely. Reverted. This is recorded so the same fix isn't tried again without first making
+Canny/Hough (or a replacement edge method) actually work on soft gradients.
+
+**Recommended next step**, not done here: replace `_segmentation_estimate`'s percentile-based
+inner-radius heuristic with one that tests for genuine bimodality (e.g. a proper two-level
+Otsu / mixture-model fit, or requiring a minimum intensity *plateau* rather than a fixed
+percentile) before reporting an inner radius at all — directly targeting the geometric
+artifact above instead of gating on method count.
 
 ### Observed: the out-of-distribution check flags `uncertain=true` often
 
