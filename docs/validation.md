@@ -90,11 +90,25 @@ reduced `csf_like`/`saline_like` to **zero** training examples each, breaking ca
 entirely. Reverted. This is recorded so the same fix isn't tried again without first making
 Canny/Hough (or a replacement edge method) actually work on soft gradients.
 
-**Recommended next step**, not done here: replace `_segmentation_estimate`'s percentile-based
-inner-radius heuristic with one that tests for genuine bimodality (e.g. a proper two-level
-Otsu / mixture-model fit, or requiring a minimum intensity *plateau* rather than a fixed
-percentile) before reporting an inner radius at all — directly targeting the geometric
-artifact above instead of gating on method count.
+**A second fix was tried and also found not to work.** The natural next idea — replace
+the percentile cut with a proper bimodality test (manual Otsu between-class-variance
+maximization on the masked region's intensity histogram, rejecting the inner-radius
+estimate when the achieved separation score is low) — was implemented as a standalone
+diagnostic (not yet wired into `halo_detection.py`) and measured against 20 samples per
+class. Result: separation scores are essentially indistinguishable between genuine halos
+and invalid blobs (csf_like 0.772 mean, saline_like 0.768, saliva_like 0.842, other 0.797,
+**invalid 0.843** — invalid actually scores slightly *higher* than csf_like/saline_like).
+Otsu's between-class-variance maximization finds *a* good split point on essentially any
+distribution, monotonic gradient or genuinely bimodal — it doesn't test for real structure,
+so it can't discriminate here. Not implemented; recorded so this isn't tried again either.
+
+**Status: not pursued further.** Two independent fix attempts (method-count corroboration,
+bimodality testing) both failed on contact with real data after the one genuine bug
+(the generator's fuzzy-edge artifact) was already fixed. The remaining ~37% false-positive
+rate on `invalid` samples looks like it needs a structurally different approach — e.g. a
+small classifier trained on the radial-intensity-profile *shape* itself, rather than another
+hand-tuned OpenCV heuristic — which is a bigger undertaking than this gate's current
+priority justifies. Left as a known, documented limitation.
 
 ### Observed: the out-of-distribution check flags `uncertain=true` often
 

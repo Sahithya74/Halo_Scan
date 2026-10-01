@@ -78,6 +78,9 @@ See `flutter_app/README.md`.
 - No PII stored — analysis history is keyed by random IDs only (`backend/app/services/storage_service.py`).
 - Uploaded images are processed in-memory and not persisted to disk.
 - Upload validation: content-type allowlist, 15MB size cap (`backend/app/api/routes_analysis.py`).
+- `/api/research/*` (dataset generation/train/evaluate — can retrain the live model)
+  requires an `X-API-Key` header when `HALO_RESEARCH_API_KEY` is set; open with a logged
+  warning otherwise (local-dev default). See `docs/api.md`.
 - CORS is wide-open (`allow_origins=["*"]`) for local development — tighten before any
   real deployment (`backend/app/main.py`).
 

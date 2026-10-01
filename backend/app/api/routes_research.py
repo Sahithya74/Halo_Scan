@@ -2,11 +2,12 @@
 interface — dataset generation, training and evaluation for the synthetic pipeline."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.dependencies import require_research_api_key
 from app.models.registry import registry
 
-router = APIRouter(prefix="/api/research", tags=["research"])
+router = APIRouter(prefix="/api/research", tags=["research"], dependencies=[Depends(require_research_api_key)])
 
 
 @router.post("/upload-dataset")
