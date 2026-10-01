@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     model_version: str = "demo-synthetic-v1"
     api_title: str = "Halo Scan Decision-Support API"
 
+    # --- Research-mode auth ---
+    # /api/research/* can retrain the live model from arbitrary-size synthetic datasets and
+    # is not meant to be reachable by ordinary app users. Empty (the local-dev default)
+    # leaves it open with a startup warning; set HALO_RESEARCH_API_KEY before exposing this
+    # service beyond localhost.
+    research_api_key: str = ""
+
 
 settings = Settings()
 settings.uploads_dir.mkdir(parents=True, exist_ok=True)

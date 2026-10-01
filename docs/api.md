@@ -71,6 +71,16 @@ Returns model version, classes, training timestamp, and the full metrics report 
 
 ## Research mode (`/api/research/*`, spec Page 8 — not a clinical interface)
 
+**Authentication**: every `/api/research/*` endpoint requires an `X-API-Key` header
+matching the `HALO_RESEARCH_API_KEY` environment variable, since these endpoints can
+retrain the live model. If that env var is unset (the local-dev default), the endpoints
+are open and the server logs a one-time startup warning — set it before exposing this
+service beyond localhost:
+```
+export HALO_RESEARCH_API_KEY=some-long-random-value   # or set in backend/.env
+curl -X POST http://localhost:8000/api/research/train -H "X-API-Key: some-long-random-value"
+```
+
 ### `POST /api/research/upload-dataset?sessions_per_class=40`
 No real labeled dataset exists yet (see `docs/dataset.md`); this (re)generates the
 synthetic dataset. Will be replaced by an actual upload endpoint once real, ethically
