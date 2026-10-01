@@ -22,13 +22,18 @@ a label as a diagnosis. See `docs/architecture.md` for the full pipeline diagram
 
 ## Status of this build
 
-Software-only (hardware — phone stand, ring light, sample pad — deferred). Built and
-verified in this pass:
-- **Backend** (`backend/`): FastAPI + OpenCV + scikit-learn. Full pipeline implemented.
-  Dependency installation was blocked in the dev environment by very slow network
-  conditions — see `docs/validation.md` for reproduction steps and current status.
+Software-only (hardware — phone stand, ring light, sample pad — deferred).
+- **Backend** (`backend/`): FastAPI + OpenCV + scikit-learn. Full pipeline implemented,
+  dependencies installed, trained on the synthetic dataset, and verified end-to-end —
+  49/49 tests pass, real metrics in `docs/validation.md` (not placeholders).
+- **Web demo** (`web_demo/`): a lightweight single-page frontend served by the backend
+  itself at `/demo` — upload/drag an image, see the quality check, ring overlay,
+  classification, SHAP explanation, and decision-support message. No install required;
+  this is what to open to see the system work without Flutter.
 - **Flutter app** (`flutter_app/`): written as real Dart code but **unverified** — no
   Flutter SDK on the dev machine. See `flutter_app/README.md` before trusting it.
+- **Database**: SQLite, file-based, created automatically on first analysis
+  (`backend/analysis_history.db`) — no separate database server to run.
 - **Dataset** (`backend/datasets/`, `docs/dataset.md`): no public dataset exists for this
   problem (confirmed by search); a procedural synthetic generator was built instead, with
   deliberately overlapping CSF-like/saline-like parameter distributions reflecting the
@@ -43,6 +48,8 @@ this pass — the MVP only assumes a smartphone camera and controlled lighting.
 
 - **Backend**: Python, FastAPI, OpenCV, NumPy, SciPy, scikit-image, scikit-learn, SHAP,
   Matplotlib, SQLite. See `backend/README.md`.
+- **Web demo**: a single static HTML/CSS/JS page (`web_demo/index.html`), no build step,
+  served by the backend itself — the verified way to see the system work in a browser.
 - **Mobile**: Flutter/Dart (unverified scaffold). See `flutter_app/README.md`.
 
 ## Architecture
@@ -99,12 +106,20 @@ python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r requirements.txt
 ```
 
-## Running the backend
+## Running everything (backend + web demo + database)
+
+The database is SQLite and needs no separate process — it's created automatically the
+first time an analysis is saved. Starting the backend starts everything:
 
 ```
 cd backend
 .venv/Scripts/python.exe -m uvicorn app.main:app --reload
 ```
+
+Then open **http://localhost:8000/demo/** in a browser for the web frontend, or
+**http://localhost:8000/docs** for the interactive API docs. If no model has been trained
+yet, run the Training steps below first (`/demo` will still load, but classification
+results require a trained model).
 
 ## Training
 
