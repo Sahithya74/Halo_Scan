@@ -80,7 +80,7 @@
     "spread_diffusion_index",
     "spread_directional_variance"
   ],
-  "trained_on": "2026-09-30T16:36:04.530208+00:00",
+  "trained_on": "2026-10-01T03:42:48.805397+00:00",
   "n_train_samples": 210,
   "n_dropped_no_halo": 10,
   "synthetic": true,
@@ -154,8 +154,8 @@
     "n_dropped_no_halo": 5,
     "halo_gate_check_on_invalid_class": {
       "invalid_samples_tested": 8,
-      "correctly_rejected": 4,
-      "rejection_rate": 0.5
+      "correctly_rejected": 5,
+      "rejection_rate": 0.625
     }
   }
 }

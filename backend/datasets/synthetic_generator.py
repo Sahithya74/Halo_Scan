@@ -109,9 +109,15 @@ def render_sample(rng: np.random.Generator, label: str) -> tuple[np.ndarray, dic
     if halo_present:
         inner_radius = outer_radius * (1.0 - params["ring_width_ratio"])
     else:
-        # No chromatographic separation: a single concentrated blob, no distinct ring.
+        # No chromatographic separation: a single concentrated blob with NO separate ring
+        # band at all (inner == outer exactly) — a soft-edged stain fading straight to
+        # background. An earlier version used inner_radius = outer_radius * 0.92, which
+        # left an ~8% "fuzzy edge" width that the halo detector's 5%-of-outer-radius
+        # width threshold (halo_detection.py) then picked up as a genuine (if faint) ring,
+        # causing ~50% of these samples to be wrongly flagged as having a halo (see
+        # docs/validation.md). Zero width removes that artifact at the source.
         outer_radius = outer_radius * 0.55
-        inner_radius = outer_radius * 0.92
+        inner_radius = outer_radius
 
     softness = max(params["decay_softness"] * outer_radius, 3.0)
 
