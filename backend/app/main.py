@@ -44,8 +44,10 @@ app.include_router(analysis_router)
 app.include_router(research_router)
 
 # Lightweight web demo frontend (web_demo/index.html) — stands in for the unverified
-# Flutter app (no SDK in this environment) so the pipeline can be exercised from a
-# browser without one. Mounted last so it never shadows the /api/* routes above.
+# Flutter app (no SDK in this environment) so the whole project (backend + frontend;
+# the database is SQLite and needs no separate process) is reachable at one URL: the
+# server root. Mounted last, and only as a catch-all, so it never shadows /api/*,
+# /docs, /redoc, or /openapi.json, all of which are registered earlier above.
 _web_demo_dir = Path(__file__).resolve().parent.parent.parent / "web_demo"
 if _web_demo_dir.is_dir():
-    app.mount("/demo", StaticFiles(directory=_web_demo_dir, html=True), name="demo")
+    app.mount("/", StaticFiles(directory=_web_demo_dir, html=True), name="web_demo")
