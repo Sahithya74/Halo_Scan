@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes_analysis import router as analysis_router
 from app.api.routes_research import router as research_router
@@ -40,3 +42,10 @@ app.add_middleware(
 
 app.include_router(analysis_router)
 app.include_router(research_router)
+
+# Lightweight web demo frontend (web_demo/index.html) — stands in for the unverified
+# Flutter app (no SDK in this environment) so the pipeline can be exercised from a
+# browser without one. Mounted last so it never shadows the /api/* routes above.
+_web_demo_dir = Path(__file__).resolve().parent.parent.parent / "web_demo"
+if _web_demo_dir.is_dir():
+    app.mount("/demo", StaticFiles(directory=_web_demo_dir, html=True), name="demo")
