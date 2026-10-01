@@ -27,7 +27,8 @@ Software-only (hardware — phone stand, ring light, sample pad — deferred).
   dependencies installed, trained on the synthetic dataset, and verified end-to-end —
   49/49 tests pass, real metrics in `docs/validation.md` (not placeholders).
 - **Web demo** (`web_demo/`): a lightweight single-page frontend served by the backend
-  itself at `/demo` — upload/drag an image, see the quality check, ring overlay,
+  itself at the server **root** — the whole project (frontend + backend + database) is
+  reachable from one URL. Upload/drag an image, see the quality check, ring overlay,
   classification, SHAP explanation, and decision-support message. No install required;
   this is what to open to see the system work without Flutter.
 - **Flutter app** (`flutter_app/`): written as real Dart code but **unverified** — no
@@ -116,10 +117,10 @@ cd backend
 .venv/Scripts/python.exe -m uvicorn app.main:app --reload
 ```
 
-Then open **http://localhost:8000/demo/** in a browser for the web frontend, or
-**http://localhost:8000/docs** for the interactive API docs. If no model has been trained
-yet, run the Training steps below first (`/demo` will still load, but classification
-results require a trained model).
+**That's the whole project at one URL: http://localhost:8000/** — frontend, backend API,
+and database are all behind it. The interactive API docs are at
+http://localhost:8000/docs. If no model has been trained yet, run the Training steps below
+first (the page still loads, but classification results require a trained model).
 
 ## Training
 
