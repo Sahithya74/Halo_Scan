@@ -297,17 +297,38 @@
   .stat-tile .v { font-size: 18px; font-weight: 700; }
   .stat-tile .l { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
-  /* ---------- Tabs ---------- */
-  .tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-  .tab-btn {
-    background: var(--surface-muted); border: 1px solid transparent; color: var(--text-secondary);
-    padding: 7px 13px; border-radius: 9px; font-size: 12px; font-weight: 600; cursor: pointer;
-    transition: all 0.15s;
+  /* ---------- Visualization grid (always visible, no click-to-reveal) ---------- */
+  .viz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 620px) { .viz-grid { grid-template-columns: 1fr; } }
+  .viz-tile { background: var(--surface-muted); border-radius: 14px; padding: 12px; }
+  .viz-tile img { width: 100%; border-radius: 10px; border: 1px solid var(--divider); display: block; background: #fff; cursor: zoom-in; transition: transform 0.15s; }
+  .viz-tile img:hover { transform: scale(1.01); }
+  .lightbox {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    background: rgba(15, 17, 19, 0.82); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 24px; cursor: zoom-out;
   }
-  .tab-btn.active { background: var(--accent-soft); color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
-  .tab-panel { display: none; animation: fadeIn 0.25s ease; }
-  .tab-panel.active { display: block; }
-  .tab-panel img { width: 100%; border-radius: 12px; border: 1px solid var(--divider); }
+  .lightbox.open { display: flex; animation: fadeIn 0.2s ease; }
+  .lightbox img { max-width: min(1000px, 100%); max-height: 88vh; border-radius: 12px; background: #fff; box-shadow: var(--shadow-lg); }
+  .lightbox .lb-caption { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; color: #eee; font-size: 13px; font-weight: 600; }
+  .viz-caption { font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin: 8px 2px 0; display: flex; align-items: center; gap: 6px; }
+  .viz-caption svg { color: var(--accent); flex: none; }
+
+  /* ---------- Hero result (big, unmissable) ---------- */
+  .hero-result { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .donut-wrap { position: relative; flex: none; width: 168px; height: 168px; }
+  .donut-wrap svg circle { transition: stroke-dasharray 0.8s cubic-bezier(.22,.61,.36,1); }
+  .donut-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+  }
+  .donut-center .pct { font-size: 25px; font-weight: 800; letter-spacing: -0.02em; }
+  .donut-center .lbl { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+  .hero-result-body { flex: 1; min-width: 200px; }
+  .class-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .class-legend-row { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+  .class-legend-row .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .class-legend-row .pct { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
 
   table.plain { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.plain td { padding: 6px 0; border-bottom: 1px solid var(--divider); }
@@ -447,6 +468,11 @@
     <div class="history-empty">Loading…</div>
   </div>
 </section>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img alt="" />
+  <div class="lb-caption"></div>
+</div>
 
 <footer>
   <div class="footer-inner">
@@ -600,24 +626,82 @@ function statusChip(result) {
   return `<div class="status-chip ${detected ? 'ok' : 'warn'}"><span class="dot"></span>${detected ? 'HALO DETECTED' : 'NO HALO DETECTED'}</div>`;
 }
 
+function donutChart(probs, predicted) {
+  const size = 168, sw = 20, r = (size - sw) / 2, circ = 2 * Math.PI * r, cx = size / 2;
+  const entries = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+  let offset = 0;
+  let segs = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" style="stroke:var(--surface-muted)" stroke-width="${sw}"/>`;
+  entries.forEach(([label, p]) => {
+    const len = circ * p;
+    if (len <= 0.5) return;
+    segs += `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" style="stroke:${CLASS_COLOR[label] || 'var(--accent)'}"
+      stroke-width="${sw}" stroke-dasharray="${len.toFixed(2)} ${(circ - len).toFixed(2)}"
+      stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${cx} ${cx})"/>`;
+    offset += len;
+  });
+  const top = probs[predicted] ?? entries[0][1];
+  return `<div class="donut-wrap">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Class probability ring">${segs}</svg>
+    <div class="donut-center">
+      <div class="pct" style="color:${CLASS_COLOR[predicted] || 'var(--accent)'}">${(top * 100).toFixed(0)}%</div>
+      <div class="lbl">${LABEL_DISPLAY[predicted] || predicted}</div>
+    </div>
+  </div>`;
+}
+
+function vizTile(title, b64, icon) {
+  return `<div class="viz-tile">
+    <img src="data:image/png;base64,${b64}" alt="${title}" onclick="openLightbox(this.src, this.alt)" />
+    <div class="viz-caption">${icon}${title}</div>
+  </div>`;
+}
+
+function openLightbox(src, caption) {
+  const lb = document.getElementById('lightbox');
+  lb.querySelector('img').src = src;
+  lb.querySelector('.lb-caption').textContent = caption + ' — click anywhere to close';
+  lb.classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+
 function renderResult(result) {
   let html = '<div class="fade-in">';
+  const c = result.classification;
+  const accentColor = c ? (CLASS_COLOR[c.research_classification] || 'var(--accent)') : 'var(--divider)';
 
-  html += `<div class="card raised">`;
+  // ---- Hero result: status, quality, and (if classified) the prediction ring ----
+  html += `<div class="card raised" style="border-left:5px solid ${accentColor};">`;
   html += statusChip(result);
-  html += `<div style="margin-bottom:12px;">Quality: <span class="badge ${qualityBadgeClass(result.quality.status)}">${result.quality.status}</span> <span style="color:var(--text-secondary);font-size:12.5px;">score ${(result.quality.score * 100).toFixed(0)}%</span></div>`;
+  html += `<div style="margin-bottom:6px;">Quality: <span class="badge ${qualityBadgeClass(result.quality.status)}">${result.quality.status}</span> <span style="color:var(--text-secondary);font-size:12.5px;">score ${(result.quality.score * 100).toFixed(0)}%</span></div>`;
   if (result.quality.reasons && result.quality.reasons.length) {
     html += `<ul style="font-size:12.5px;color:var(--text-secondary);margin:0 0 4px;padding-left:18px;">`;
     result.quality.reasons.forEach(r => html += `<li>${escapeHtml(r)}</li>`);
     html += `</ul>`;
   }
-  if (result.classification) {
-    const c = result.classification;
-    html += `<div class="label-row" style="margin-top:16px;">
-      <div class="classification-label display">${LABEL_DISPLAY[c.research_classification] || c.research_classification}</div>
-      ${c.uncertain ? '<span class="badge uncertain">UNCERTAIN</span>' : ''}
+  if (c && c.class_probabilities) {
+    const entries = Object.entries(c.class_probabilities).sort((a, b) => b[1] - a[1]);
+    html += `<div class="hero-result" style="margin-top:18px;">
+      ${donutChart(c.class_probabilities, c.research_classification)}
+      <div class="hero-result-body">
+        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;">Most likely research classification</div>
+        <div class="label-row">
+          <div class="classification-label display" style="color:${accentColor};">${LABEL_DISPLAY[c.research_classification] || c.research_classification}</div>
+          ${c.uncertain ? '<span class="badge uncertain">UNCERTAIN</span>' : ''}
+        </div>
+        <div class="confidence">Confidence ${(c.confidence * 100).toFixed(1)}% · model disagreement ${(c.disagreement * 100).toFixed(1)}%</div>
+        <div class="class-legend">
+          ${entries.map(([label, p]) => `
+            <div class="class-legend-row">
+              <span class="sw" style="background:${CLASS_COLOR[label] || 'var(--accent)'};"></span>
+              <span>${LABEL_DISPLAY[label] || label}</span>
+              <span class="pct">${(p * 100).toFixed(1)}%</span>
+            </div>
+            <div class="prob-track" style="height:6px;margin:-3px 0 2px 19px;"><div class="prob-fill" style="width:${(p * 100).toFixed(1)}%;background:${CLASS_COLOR[label] || 'var(--accent)'};"></div></div>
+          `).join('')}
+        </div>
+      </div>
     </div>`;
-    html += `<div class="confidence">Confidence ${(c.confidence * 100).toFixed(1)}% · model disagreement ${(c.disagreement * 100).toFixed(1)}%</div>`;
   }
   html += `</div>`;
 
@@ -629,18 +713,21 @@ function renderResult(result) {
     <div class="disclaimer">${escapeHtml(result.decision_support.disclaimer)}</div>
   </div>`;
 
-  if (result.classification && result.classification.class_probabilities) {
-    const entries = Object.entries(result.classification.class_probabilities).sort((a, b) => b[1] - a[1]);
-    html += `<div class="card raised">
-      <div class="card-title">${iconChart()} Class Probabilities</div>`;
-    entries.forEach(([label, prob]) => {
-      const color = CLASS_COLOR[label] || 'var(--accent)';
-      html += `<div class="prob-row">
-        <div class="prob-label"><span>${LABEL_DISPLAY[label] || label}</span><span>${(prob * 100).toFixed(1)}%</span></div>
-        <div class="prob-track"><div class="prob-fill" style="width:${(prob * 100).toFixed(1)}%;background:${color};"></div></div>
+  // ---- All diagrams visible at once: measurement + prediction first ----
+  if (result.visualizations) {
+    const v = result.visualizations;
+    const tiles = [
+      ['Ring measurement diagram — measured radii annotated', v.overlay_png_base64, iconTag()],
+      ['Prediction diagram — chance of each fluid class', v.probability_chart_png_base64, iconChart()],
+      ['Radial intensity profile — where the rings are', v.radial_profile_png_base64, iconLayers()],
+      ['Why this prediction — top SHAP features', v.feature_importance_png_base64, iconFlask()],
+    ].filter(t => t[1]);
+    if (tiles.length) {
+      html += `<div class="card raised">
+        <div class="card-title">${iconLayers()} Analysis Diagrams</div>
+        <div class="viz-grid">${tiles.map(([t, b64, ic]) => vizTile(t, b64, ic)).join('')}</div>
       </div>`;
-    });
-    html += `</div>`;
+    }
   }
 
   if (result.halo) {
@@ -658,29 +745,6 @@ function renderResult(result) {
     </div>`;
   }
 
-  if (result.visualizations) {
-    const v = result.visualizations;
-    const tabs = [
-      ['overlay', 'Ring Overlay', v.overlay_png_base64],
-      ['radial', 'Radial Profile', v.radial_profile_png_base64],
-      ['prob', 'Probability Chart', v.probability_chart_png_base64],
-      ['shap', 'SHAP Features', v.feature_importance_png_base64],
-    ].filter(t => t[2]);
-    if (tabs.length) {
-      html += `<div class="card raised">
-        <div class="card-title">${iconLayers()} Visual Analysis</div>
-        <div class="tabs">`;
-      tabs.forEach(([key, label], i) => {
-        html += `<button class="tab-btn ${i === 0 ? 'active' : ''}" onclick="switchTab(this,'${key}')">${label}</button>`;
-      });
-      html += `</div>`;
-      tabs.forEach(([key, label, b64], i) => {
-        html += `<div class="tab-panel ${i === 0 ? 'active' : ''}" data-tab="${key}"><img src="data:image/png;base64,${b64}" alt="${label}" /></div>`;
-      });
-      html += `</div>`;
-    }
-  }
-
   if (result.explainability && result.explainability.top_features && result.explainability.top_features.length) {
     html += `<div class="card raised">
       <div class="card-title">${iconFlask()} Top Contributing Features</div>
@@ -696,14 +760,6 @@ function renderResult(result) {
 
   resultsEl.innerHTML = html;
   resultsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-function switchTab(btn, key) {
-  const card = btn.closest('.card');
-  card.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  card.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  card.querySelector(`.tab-panel[data-tab="${key}"]`).classList.add('active');
 }
 
 /* ---------- history ---------- */
