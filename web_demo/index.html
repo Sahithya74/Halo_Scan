@@ -3,143 +3,338 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Halo Scan — Demo</title>
+<title>Halo Scan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #f6f5f2;
+    --bg: #f4f2ee;
+    --bg-grad-a: #eef2ef;
+    --bg-grad-b: #f6f1e9;
     --surface: #ffffff;
-    --surface-muted: #eeede8;
-    --text: #2a2e32;
-    --text-secondary: #6b7280;
+    --surface-raised: #ffffff;
+    --surface-muted: #eeede7;
+    --text: #23262a;
+    --text-secondary: #686f76;
+    --text-tertiary: #9aa0a6;
     --accent: #3d6e73;
-    --accent-soft: #dce7e8;
-    --warning: #b98900;
+    --accent-ink: #2b5156;
+    --accent-soft: #dde9e9;
+    --accent-2: #c17a3d;
+    --accent-2-soft: #f3e3d2;
+    --warning: #ad7d14;
+    --warning-soft: #f3e6c8;
     --danger: #a23b3b;
+    --danger-soft: #f3dcdc;
     --success: #3f7a5e;
-    --divider: #e2e0da;
+    --success-soft: #dcebe3;
+    --divider: #e3e0d8;
+    --shadow-sm: 0 1px 2px rgba(20, 20, 15, 0.04), 0 1px 1px rgba(20,20,15,0.03);
+    --shadow-md: 0 10px 30px -12px rgba(30, 35, 30, 0.18);
+    --shadow-lg: 0 20px 50px -18px rgba(30, 35, 30, 0.28);
+    --c-csf: #3d6e73;
+    --c-saline: #4f7fb0;
+    --c-saliva: #c17a3d;
+    --c-other: #8d8378;
+    --radius: 16px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #15171a;
-      --surface: #1e2124;
-      --surface-muted: #23262a;
-      --text: #e8e8e6;
-      --text-secondary: #9aa0a6;
-      --accent: #5a9aa0;
-      --accent-soft: #223235;
-      --divider: #2d3135;
+      --bg: #121416;
+      --bg-grad-a: #15191a;
+      --bg-grad-b: #181614;
+      --surface: #1b1e21;
+      --surface-raised: #202427;
+      --surface-muted: #202326;
+      --text: #ecebe8;
+      --text-secondary: #a3a9ae;
+      --text-tertiary: #767c82;
+      --accent: #6aa8ae;
+      --accent-ink: #bfe0e2;
+      --accent-soft: #1d2d2e;
+      --accent-2: #d99a5f;
+      --accent-2-soft: #332419;
+      --warning-soft: #332a12;
+      --danger-soft: #2f1d1d;
+      --success-soft: #1a2a22;
+      --divider: #2b2f33;
+      --shadow-md: 0 10px 30px -12px rgba(0,0,0,0.5);
+      --shadow-lg: 0 20px 50px -18px rgba(0,0,0,0.6);
     }
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    background: var(--bg);
+    background:
+      radial-gradient(1100px 500px at 15% -10%, var(--bg-grad-a), transparent),
+      radial-gradient(900px 500px at 110% 10%, var(--bg-grad-b), transparent),
+      var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
-  header { margin-bottom: 20px; }
-  h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
-  .subtitle { color: var(--text-secondary); font-size: 13.5px; }
+  .display { font-family: "Fraunces", Georgia, serif; }
+
+  /* ---------- Navbar ---------- */
+  .navbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--divider);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .brand-name { font-weight: 800; font-size: 16px; letter-spacing: -0.01em; }
+  .brand-tag {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent-ink); background: var(--accent-soft);
+    padding: 3px 8px; border-radius: 20px; margin-left: 4px;
+  }
+  .nav-links { display: flex; align-items: center; gap: 22px; font-size: 13px; font-weight: 600; }
+  .nav-links a { color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-links .pulse-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success); margin-right: 6px; box-shadow: 0 0 0 3px var(--success-soft);
+  }
+
+  /* ---------- Hero ---------- */
+  .hero { max-width: 1120px; margin: 0 auto; padding: 44px 28px 8px; }
+  .hero h1 { font-size: 38px; margin: 0 0 8px; font-weight: 600; letter-spacing: -0.01em; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero .lede { color: var(--text-secondary); font-size: 15px; max-width: 620px; margin: 0 0 18px; }
+
+  .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat-chip {
+    background: var(--surface); border: 1px solid var(--divider); border-radius: 12px;
+    padding: 9px 14px; font-size: 12px; color: var(--text-secondary);
+    display: flex; align-items: center; gap: 7px; box-shadow: var(--shadow-sm);
+  }
+  .stat-chip b { color: var(--text); font-size: 13px; font-weight: 700; }
+  .stat-chip svg { color: var(--accent); flex: none; }
 
   .banner {
     background: var(--accent-soft);
-    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-    border-radius: 10px;
-    padding: 14px;
-    font-size: 12.5px;
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 13px;
     color: var(--text-secondary);
-    margin-bottom: 20px;
+    margin-bottom: 28px;
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: flex-start;
   }
-  .banner svg { flex: none; margin-top: 1px; color: var(--accent); }
+  .banner svg { flex: none; margin-top: 2px; color: var(--accent-ink); }
+  .banner strong { color: var(--text); }
+
+  /* ---------- Layout ---------- */
+  .layout {
+    max-width: 1120px; margin: 0 auto; padding: 0 28px 20px;
+    display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start;
+  }
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    .panel-upload { position: static !important; }
+    .hero { padding: 32px 18px 4px; }
+    .layout, .history-wrap, .footer-inner { padding-left: 18px; padding-right: 18px; }
+    .navbar { padding: 12px 18px; }
+    .hero h1 { font-size: 28px; }
+  }
+  .panel-upload { position: sticky; top: 78px; }
 
   .card {
     background: var(--surface);
     border: 1px solid var(--divider);
-    border-radius: 14px;
-    padding: 18px;
+    border-radius: var(--radius);
+    padding: 20px;
     margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, transform 0.2s;
   }
+  .card.raised:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .card-title {
+    font-size: 11.5px; font-weight: 700; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .card-title svg { color: var(--accent); }
 
+  /* ---------- Dropzone ---------- */
   .dropzone {
     border: 2px dashed var(--divider);
-    border-radius: 12px;
-    padding: 28px 16px;
+    border-radius: 14px;
+    padding: 30px 16px;
     text-align: center;
     cursor: pointer;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, background 0.15s;
+    background: var(--surface-muted);
   }
   .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
-  .dropzone p { margin: 6px 0 0; color: var(--text-secondary); font-size: 13px; }
+  .dropzone .dz-icon {
+    width: 46px; height: 46px; border-radius: 50%; margin: 0 auto 10px;
+    background: var(--surface); border: 1px solid var(--divider);
+    display: flex; align-items: center; justify-content: center; color: var(--accent);
+  }
+  .dropzone p { margin: 0; color: var(--text-secondary); font-size: 12.5px; }
   .dropzone input { display: none; }
 
-  #preview { max-width: 100%; border-radius: 10px; margin-top: 14px; display: none; }
+  #preview { max-width: 100%; border-radius: 12px; margin-top: 14px; display: none; border: 1px solid var(--divider); }
 
   button.primary {
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-ink));
     color: #fff;
     border: none;
-    padding: 12px 20px;
-    border-radius: 10px;
+    padding: 13px 20px;
+    border-radius: 12px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     margin-top: 14px;
     width: 100%;
+    box-shadow: var(--shadow-sm);
+    transition: filter 0.15s, transform 0.1s;
   }
-  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  button.primary:not(:disabled):hover { filter: brightness(1.05); }
+  button.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.primary:not(:disabled):hover { filter: brightness(1.08); }
+  button.primary:not(:disabled):active { transform: scale(0.99); }
 
+  button.ghost {
+    background: transparent; border: 1px solid var(--divider); color: var(--text-secondary);
+    padding: 9px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  }
+  button.ghost:hover { border-color: var(--accent); color: var(--accent-ink); }
+
+  /* ---------- Processing stages ---------- */
+  .stages { margin-top: 16px; display: none; }
+  .stages.active { display: block; }
+  .stage-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 12.5px; color: var(--text-tertiary); transition: color 0.2s; }
+  .stage-row.done { color: var(--text); }
+  .stage-dot {
+    width: 16px; height: 16px; border-radius: 50%; flex: none;
+    border: 2px solid var(--divider); display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+  }
+  .stage-row.done .stage-dot { border-color: var(--success); background: var(--success); }
+  .stage-row.done .stage-dot svg { display: block; }
+  .stage-dot svg { display: none; color: #fff; }
+
+  /* ---------- Badges / chips ---------- */
   .badge {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 4px 11px;
     border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11.5px;
+    font-weight: 700;
   }
-  .badge.good { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
-  .badge.acceptable { background: color-mix(in srgb, var(--warning) 15%, transparent); color: var(--warning); }
-  .badge.poor { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); }
-  .badge.uncertain { background: color-mix(in srgb, var(--warning) 15%, transparent); color: var(--warning); }
+  .badge.good { background: var(--success-soft); color: var(--success); }
+  .badge.acceptable { background: var(--warning-soft); color: var(--warning); }
+  .badge.poor { background: var(--danger-soft); color: var(--danger); }
+  .badge.uncertain { background: var(--warning-soft); color: var(--warning); }
 
   .status-chip {
-    display: inline-block;
-    padding: 8px 14px;
-    border-radius: 10px;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px;
+    border-radius: 11px;
     font-weight: 700;
-    letter-spacing: 0.3px;
-    font-size: 13px;
-    margin-bottom: 16px;
+    letter-spacing: 0.2px;
+    font-size: 12.5px;
+    margin-bottom: 18px;
   }
-  .status-chip.ok { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
-  .status-chip.warn { background: color-mix(in srgb, var(--warning) 12%, transparent); color: var(--warning); }
-  .status-chip.bad { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+  .status-chip.ok { background: var(--success-soft); color: var(--success); }
+  .status-chip.warn { background: var(--warning-soft); color: var(--warning); }
+  .status-chip.bad { background: var(--danger-soft); color: var(--danger); }
+  .status-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
-  .label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
-  .classification-label { font-size: 26px; font-weight: 700; }
-  .confidence { color: var(--text-secondary); font-size: 13px; }
+  .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; flex-wrap: wrap; gap: 8px; }
+  .classification-label { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  .confidence { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
-  table td { padding: 5px 0; border-bottom: 1px solid var(--divider); }
-  table td:last-child { text-align: right; font-weight: 600; }
+  /* ---------- Empty state ---------- */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 70px 30px;
+    border: 1px dashed var(--divider); border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .empty-state .ring-anim {
+    width: 86px; height: 86px; border-radius: 50%;
+    border: 3px solid var(--accent-soft);
+    position: relative; margin-bottom: 20px;
+  }
+  .empty-state .ring-anim::before {
+    content: ""; position: absolute; inset: 14px; border-radius: 50%;
+    border: 3px solid var(--accent-2-soft);
+  }
+  .empty-state .ring-anim::after {
+    content: ""; position: absolute; inset: 30px; border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .empty-state h3 { margin: 0 0 8px; font-size: 17px; font-weight: 700; }
+  .empty-state p { margin: 0; color: var(--text-secondary); font-size: 13px; max-width: 320px; }
 
-  .viz-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 10px; }
-  .viz-grid img { width: 100%; border-radius: 10px; border: 1px solid var(--divider); }
-  .viz-title { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin: 0 0 6px; }
+  /* ---------- Probability bars ---------- */
+  .prob-row { margin-bottom: 12px; }
+  .prob-row:last-child { margin-bottom: 0; }
+  .prob-label { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 5px; }
+  .prob-label span:first-child { font-weight: 600; }
+  .prob-track { height: 9px; border-radius: 6px; background: var(--surface-muted); overflow: hidden; }
+  .prob-fill { height: 100%; border-radius: 6px; transition: width 0.6s cubic-bezier(.22,.61,.36,1); }
+
+  /* ---------- Stat grid ---------- */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .stat-tile { background: var(--surface-muted); border-radius: 12px; padding: 12px 14px; }
+  .stat-tile .v { font-size: 18px; font-weight: 700; }
+  .stat-tile .l { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ---------- Tabs ---------- */
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tab-btn {
+    background: var(--surface-muted); border: 1px solid transparent; color: var(--text-secondary);
+    padding: 7px 13px; border-radius: 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn.active { background: var(--accent-soft); color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .tab-panel { display: none; animation: fadeIn 0.25s ease; }
+  .tab-panel.active { display: block; }
+  .tab-panel img { width: 100%; border-radius: 12px; border: 1px solid var(--divider); }
+
+  table.plain { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.plain td { padding: 6px 0; border-bottom: 1px solid var(--divider); }
+  table.plain td:last-child { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  table.plain tr:last-child td { border-bottom: none; }
+
+  .decision-card {
+    background: linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--accent-2-soft) 60%, var(--accent-soft)));
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  .decision-card .msg { font-size: 13.5px; margin-bottom: 10px; color: var(--text); font-weight: 500; }
+  .decision-card .disclaimer { font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; }
+  .decision-card .lab-pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
+    background: var(--surface); padding: 5px 10px; border-radius: 20px; margin-bottom: 10px;
+    color: var(--accent-ink);
+  }
 
   #error {
     display: none;
-    background: color-mix(in srgb, var(--danger) 10%, transparent);
+    background: var(--danger-soft);
     border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
     color: var(--danger);
-    border-radius: 10px;
-    padding: 12px 14px;
+    border-radius: 12px;
+    padding: 13px 16px;
     font-size: 13px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
   }
 
   .spinner {
@@ -153,47 +348,120 @@
     margin-right: 8px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.35s ease; }
 
-  footer { text-align: center; color: var(--text-secondary); font-size: 11.5px; margin-top: 28px; }
-  footer a { color: var(--accent); }
+  /* ---------- History ---------- */
+  .history-wrap { max-width: 1120px; margin: 8px auto 0; padding: 0 28px 20px; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-head h2 { font-size: 15px; margin: 0; font-weight: 700; }
+  .history-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+  .history-card {
+    flex: none; width: 190px; background: var(--surface); border: 1px solid var(--divider);
+    border-radius: 13px; padding: 14px; cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow-sm);
+  }
+  .history-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .history-card .hc-label { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+  .history-card .hc-meta { font-size: 11px; color: var(--text-tertiary); }
+  .history-empty { font-size: 12.5px; color: var(--text-tertiary); padding: 18px 0; }
+
+  footer { border-top: 1px solid var(--divider); margin-top: 20px; }
+  .footer-inner {
+    max-width: 1120px; margin: 0 auto; padding: 22px 28px 36px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    color: var(--text-tertiary); font-size: 11.5px;
+  }
+  footer a { color: var(--accent-ink); text-decoration: none; font-weight: 600; }
+  footer a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Halo Scan</h1>
-    <div class="subtitle">Research decision-support demo — image analysis only, not a medical diagnosis.</div>
-  </header>
+
+<nav class="navbar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="#fff" stroke="none"/></svg>
+    </div>
+    <span class="brand-name">Halo Scan</span>
+    <span class="brand-tag">Research Demo</span>
+  </div>
+  <div class="nav-links">
+    <a href="#analyze">Analyze</a>
+    <a href="#history">History</a>
+    <a href="/docs" target="_blank" rel="noopener">API Docs</a>
+    <a href="#" id="healthLink"><span class="pulse-dot" id="healthDot"></span><span id="healthText">checking…</span></a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1 class="display">Halo pattern analysis, <em>made explainable.</em></h1>
+  <p class="lede">Upload a photo of a fluid-drop halo/ring pattern and get a full decision-support
+    breakdown — quality check, ring detection, calibrated classification, and SHAP explainability —
+    running entirely on the backend below.</p>
+
+  <div class="stat-row" id="statRow"></div>
 
   <div class="banner">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    <span>This is a software prototype talking directly to the local FastAPI backend. The halo/double-ring pattern is not specific to CSF — saline and other clear fluids can produce the same pattern. Beta-2 transferrin lab testing remains the specific confirmatory method.</span>
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    <span><strong>Not a diagnosis.</strong> The halo/double-ring pattern is not specific to CSF — saline and other clear fluids can produce the same pattern. Beta-2 transferrin lab testing remains the specific confirmatory method. This page talks directly to the local FastAPI backend and all data shown is synthetic/demo unless you supply a real image.</span>
   </div>
+</header>
 
-  <div id="error"></div>
+<main class="layout" id="analyze">
+  <section class="panel-upload">
+    <div class="card raised">
+      <div class="card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+        Sample Image
+      </div>
+      <div id="error"></div>
+      <div class="dropzone" id="dropzone">
+        <div class="dz-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <p id="dropzone-text">Click to choose an image, or drag one here<br>JPEG / PNG / WebP, up to 15MB</p>
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+      </div>
+      <img id="preview" alt="Selected sample preview" />
+      <button class="primary" id="analyzeBtn" disabled>Analyze Sample</button>
 
-  <div class="card">
-    <div class="dropzone" id="dropzone">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-secondary)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      <p id="dropzone-text">Click to choose an image, or drag one here<br>(JPEG / PNG / WebP, up to 15MB)</p>
-      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+      <div class="stages" id="stages"></div>
     </div>
-    <img id="preview" alt="Selected sample preview" />
-    <button class="primary" id="analyzeBtn" disabled>Analyze Sample</button>
+  </section>
+
+  <section class="panel-results" id="results">
+    <div class="empty-state fade-in">
+      <div class="ring-anim"></div>
+      <h3>Nothing analyzed yet</h3>
+      <p>Choose a sample on the left — or click a card from Recent Analyses below — to see the full pipeline output here.</p>
+    </div>
+  </section>
+</main>
+
+<section class="history-wrap" id="history">
+  <div class="section-head">
+    <h2>Recent Analyses</h2>
+    <button class="ghost" id="refreshHistory">Refresh</button>
   </div>
+  <div class="history-scroll" id="historyScroll">
+    <div class="history-empty">Loading…</div>
+  </div>
+</section>
 
-  <div id="results"></div>
-
-  <footer>
-    Backend: <span id="apiBase"></span> ·
-    <a href="/docs" target="_blank" rel="noopener">API docs</a> ·
-    <a href="https://github.com" onclick="return false" style="pointer-events:none;opacity:0.5">Halo Scan</a>
-  </footer>
-</div>
+<footer>
+  <div class="footer-inner">
+    <span>Halo Scan — backend at <code id="apiBase"></code></span>
+    <span><a href="/docs" target="_blank" rel="noopener">Interactive API docs</a> · Not a medical device.</span>
+  </div>
+</footer>
 
 <script>
 const API_BASE = window.location.origin;
 document.getElementById('apiBase').textContent = API_BASE;
+
+const LABEL_DISPLAY = { csf_like: 'CSF-like', saline_like: 'Saline-like', saliva_like: 'Saliva-like', other: 'Other / atypical' };
+const CLASS_COLOR = { csf_like: 'var(--c-csf)', saline_like: 'var(--c-saline)', saliva_like: 'var(--c-saliva)', other: 'var(--c-other)' };
+const STAGES = ['Image acquired', 'Quality checked', 'Sample detected', 'Halo detected', 'Features extracted', 'AI analysis', 'Confidence calculated'];
 
 const dropzone = document.getElementById('dropzone');
 const dropzoneText = document.getElementById('dropzone-text');
@@ -202,9 +470,52 @@ const preview = document.getElementById('preview');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const resultsEl = document.getElementById('results');
 const errorEl = document.getElementById('error');
+const stagesEl = document.getElementById('stages');
 
 let selectedFile = null;
+let stageTimer = null;
 
+/* ---------- health + model stats ---------- */
+async function loadHealthAndStats() {
+  try {
+    const health = await (await fetch(`${API_BASE}/api/health`)).json();
+    document.getElementById('healthDot').style.background = health.model_loaded ? 'var(--success)' : 'var(--warning)';
+    document.getElementById('healthText').textContent = health.model_loaded ? 'Backend online' : 'Model not trained';
+  } catch {
+    document.getElementById('healthDot').style.background = 'var(--danger)';
+    document.getElementById('healthText').textContent = 'Backend unreachable';
+  }
+
+  const statRow = document.getElementById('statRow');
+  try {
+    const info = await fetch(`${API_BASE}/api/model-info`);
+    if (info.ok) {
+      const d = await info.json();
+      const acc = d.metrics && d.metrics.accuracy !== undefined ? `${(d.metrics.accuracy * 100).toFixed(1)}%` : '—';
+      statRow.innerHTML = [
+        statChip(iconLayers(), 'Model', d.model_version),
+        statChip(iconTag(), 'Classes', d.classes.length),
+        statChip(iconChart(), 'Test accuracy', acc),
+        statChip(iconFlask(), 'Training data', 'Synthetic'),
+      ].join('');
+      return;
+    }
+  } catch {}
+  statRow.innerHTML = statChip(iconFlask(), 'Status', 'Model not yet trained');
+}
+
+function statChip(icon, label, value) {
+  return `<div class="stat-chip">${icon}<span>${label}: <b>${escapeHtml(String(value))}</b></span></div>`;
+}
+function iconLayers() { return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`; }
+function iconTag() { return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`; }
+function iconChart() { return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`; }
+function iconFlask() { return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6L4 18a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-10V2"/><line x1="9" y1="2" x2="15" y2="2"/></svg>`; }
+function iconCheck() { return `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`; }
+
+loadHealthAndStats();
+
+/* ---------- upload handling ---------- */
 dropzone.addEventListener('click', () => fileInput.click());
 dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
 dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
@@ -213,27 +524,38 @@ dropzone.addEventListener('drop', (e) => {
   dropzone.classList.remove('drag');
   if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
 });
-fileInput.addEventListener('change', (e) => {
-  if (e.target.files.length) handleFile(e.target.files[0]);
-});
+fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
 function handleFile(file) {
   selectedFile = file;
-  dropzoneText.innerHTML = `<strong>${file.name}</strong><br>${(file.size / 1024).toFixed(0)} KB — click to choose a different file`;
+  dropzoneText.innerHTML = `<strong>${escapeHtml(file.name)}</strong><br>${(file.size / 1024).toFixed(0)} KB — click to choose a different file`;
   const reader = new FileReader();
   reader.onload = (e) => { preview.src = e.target.result; preview.style.display = 'block'; };
   reader.readAsDataURL(file);
   analyzeBtn.disabled = false;
-  resultsEl.innerHTML = '';
   hideError();
 }
 
-function showError(msg) {
-  errorEl.textContent = msg;
-  errorEl.style.display = 'block';
+function showError(msg) { errorEl.textContent = msg; errorEl.style.display = 'block'; }
+function hideError() { errorEl.style.display = 'none'; }
+
+function startStages() {
+  stagesEl.classList.add('active');
+  stagesEl.innerHTML = STAGES.map((s, i) => `
+    <div class="stage-row" data-i="${i}">
+      <div class="stage-dot">${iconCheck()}</div><span>${s}</span>
+    </div>`).join('');
+  let i = 0;
+  clearInterval(stageTimer);
+  stageTimer = setInterval(() => {
+    if (i >= STAGES.length) { clearInterval(stageTimer); return; }
+    stagesEl.querySelector(`[data-i="${i}"]`).classList.add('done');
+    i++;
+  }, 260);
 }
-function hideError() {
-  errorEl.style.display = 'none';
+function stopStages() {
+  clearInterval(stageTimer);
+  setTimeout(() => { stagesEl.classList.remove('active'); }, 400);
 }
 
 analyzeBtn.addEventListener('click', async () => {
@@ -241,33 +563,26 @@ analyzeBtn.addEventListener('click', async () => {
   hideError();
   analyzeBtn.disabled = true;
   analyzeBtn.innerHTML = '<span class="spinner"></span>Analyzing…';
-  resultsEl.innerHTML = '';
+  startStages();
 
   try {
     const form = new FormData();
     form.append('file', selectedFile, selectedFile.name);
     const resp = await fetch(`${API_BASE}/api/analyze`, { method: 'POST', body: form });
-    if (!resp.ok) {
-      const detail = await resp.text();
-      throw new Error(`${resp.status}: ${detail}`);
-    }
+    if (!resp.ok) throw new Error(`${resp.status}: ${await resp.text()}`);
     const data = await resp.json();
     renderResult(data);
+    loadHistory();
   } catch (err) {
     showError(`Analysis failed: ${err.message}`);
   } finally {
+    stopStages();
     analyzeBtn.disabled = false;
     analyzeBtn.textContent = 'Analyze Sample';
   }
 });
 
-const LABEL_DISPLAY = {
-  csf_like: 'CSF-like',
-  saline_like: 'Saline-like',
-  saliva_like: 'Saliva-like',
-  other: 'Other / atypical',
-};
-
+/* ---------- result rendering ---------- */
 function qualityBadgeClass(status) {
   if (status === 'GOOD') return 'good';
   if (status === 'ACCEPTABLE') return 'acceptable';
@@ -276,97 +591,158 @@ function qualityBadgeClass(status) {
 
 function statusChip(result) {
   if (result.status === 'RECAPTURE_NEEDED') {
-    return `<div class="status-chip bad">IMAGE QUALITY INSUFFICIENT</div>`;
+    return `<div class="status-chip bad"><span class="dot"></span>IMAGE QUALITY INSUFFICIENT</div>`;
   }
   if (result.status === 'NO_HALO_DETECTED') {
-    return `<div class="status-chip warn">NO HALO DETECTED</div>`;
+    return `<div class="status-chip warn"><span class="dot"></span>NO HALO DETECTED</div>`;
   }
   const detected = result.halo && result.halo.detected;
-  return `<div class="status-chip ${detected ? 'ok' : 'warn'}">${detected ? 'HALO DETECTED' : 'NO HALO DETECTED'}</div>`;
+  return `<div class="status-chip ${detected ? 'ok' : 'warn'}"><span class="dot"></span>${detected ? 'HALO DETECTED' : 'NO HALO DETECTED'}</div>`;
 }
 
 function renderResult(result) {
-  let html = '';
+  let html = '<div class="fade-in">';
 
-  html += `<div class="card">`;
+  html += `<div class="card raised">`;
   html += statusChip(result);
-  html += `<div style="margin-bottom:12px;">Quality: <span class="badge ${qualityBadgeClass(result.quality.status)}">${result.quality.status}</span> <span style="color:var(--text-secondary);font-size:12.5px;">(score ${(result.quality.score * 100).toFixed(0)}%)</span></div>`;
+  html += `<div style="margin-bottom:12px;">Quality: <span class="badge ${qualityBadgeClass(result.quality.status)}">${result.quality.status}</span> <span style="color:var(--text-secondary);font-size:12.5px;">score ${(result.quality.score * 100).toFixed(0)}%</span></div>`;
   if (result.quality.reasons && result.quality.reasons.length) {
     html += `<ul style="font-size:12.5px;color:var(--text-secondary);margin:0 0 4px;padding-left:18px;">`;
     result.quality.reasons.forEach(r => html += `<li>${escapeHtml(r)}</li>`);
     html += `</ul>`;
   }
-
   if (result.classification) {
     const c = result.classification;
-    html += `<div class="label-row" style="margin-top:14px;">
-      <div class="classification-label">${LABEL_DISPLAY[c.research_classification] || c.research_classification}</div>
+    html += `<div class="label-row" style="margin-top:16px;">
+      <div class="classification-label display">${LABEL_DISPLAY[c.research_classification] || c.research_classification}</div>
       ${c.uncertain ? '<span class="badge uncertain">UNCERTAIN</span>' : ''}
     </div>`;
-    html += `<div class="confidence">Confidence: ${(c.confidence * 100).toFixed(1)}%</div>`;
+    html += `<div class="confidence">Confidence ${(c.confidence * 100).toFixed(1)}% · model disagreement ${(c.disagreement * 100).toFixed(1)}%</div>`;
   }
   html += `</div>`;
 
-  html += `<div class="card" style="background:var(--accent-soft);">
-    <div style="font-size:13px;margin-bottom:8px;">${escapeHtml(result.decision_support.message)}</div>
-    <div style="font-size:11.5px;color:var(--text-secondary);">${escapeHtml(result.decision_support.disclaimer)}</div>
+  html += `<div class="card decision-card">`;
+  if (result.decision_support.recommend_lab_confirmation) {
+    html += `<div class="lab-pill">${iconFlask()} Lab confirmation recommended</div><br>`;
+  }
+  html += `<div class="msg">${escapeHtml(result.decision_support.message)}</div>
+    <div class="disclaimer">${escapeHtml(result.decision_support.disclaimer)}</div>
   </div>`;
+
+  if (result.classification && result.classification.class_probabilities) {
+    const entries = Object.entries(result.classification.class_probabilities).sort((a, b) => b[1] - a[1]);
+    html += `<div class="card raised">
+      <div class="card-title">${iconChart()} Class Probabilities</div>`;
+    entries.forEach(([label, prob]) => {
+      const color = CLASS_COLOR[label] || 'var(--accent)';
+      html += `<div class="prob-row">
+        <div class="prob-label"><span>${LABEL_DISPLAY[label] || label}</span><span>${(prob * 100).toFixed(1)}%</span></div>
+        <div class="prob-track"><div class="prob-fill" style="width:${(prob * 100).toFixed(1)}%;background:${color};"></div></div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
 
   if (result.halo) {
     const h = result.halo;
-    html += `<div class="card">
-      <div class="viz-title">Halo Geometry</div>
-      <table>
-        <tr><td>Inner radius (px)</td><td>${h.inner_radius.toFixed(1)}</td></tr>
-        <tr><td>Outer radius (px)</td><td>${h.outer_radius.toFixed(1)}</td></tr>
-        <tr><td>Halo width (px)</td><td>${h.halo_width.toFixed(1)}</td></tr>
-        <tr><td>Circularity</td><td>${h.circularity.toFixed(3)}</td></tr>
-        <tr><td>Symmetry score</td><td>${h.symmetry_score.toFixed(3)}</td></tr>
-        <tr><td>Detection confidence</td><td>${(h.confidence * 100).toFixed(1)}%</td></tr>
-      </table>
+    html += `<div class="card raised">
+      <div class="card-title">${iconTag()} Halo Geometry</div>
+      <div class="stat-grid">
+        <div class="stat-tile"><div class="v">${h.inner_radius.toFixed(0)}px</div><div class="l">Inner radius</div></div>
+        <div class="stat-tile"><div class="v">${h.outer_radius.toFixed(0)}px</div><div class="l">Outer radius</div></div>
+        <div class="stat-tile"><div class="v">${h.halo_width.toFixed(0)}px</div><div class="l">Ring width</div></div>
+        <div class="stat-tile"><div class="v">${h.circularity.toFixed(2)}</div><div class="l">Circularity</div></div>
+        <div class="stat-tile"><div class="v">${h.symmetry_score.toFixed(2)}</div><div class="l">Symmetry</div></div>
+        <div class="stat-tile"><div class="v">${(h.confidence * 100).toFixed(0)}%</div><div class="l">Detector confidence</div></div>
+      </div>
     </div>`;
-  }
-
-  if (result.classification && result.classification.class_probabilities) {
-    html += `<div class="card">
-      <div class="viz-title">Class Probabilities</div>
-      <table>`;
-    Object.entries(result.classification.class_probabilities)
-      .sort((a, b) => b[1] - a[1])
-      .forEach(([label, prob]) => {
-        html += `<tr><td>${LABEL_DISPLAY[label] || label}</td><td>${(prob * 100).toFixed(1)}%</td></tr>`;
-      });
-    html += `</table></div>`;
   }
 
   if (result.visualizations) {
     const v = result.visualizations;
-    html += `<div class="card"><div class="viz-grid">`;
-    if (v.overlay_png_base64) html += vizBlock('Ring Detection Overlay', v.overlay_png_base64);
-    if (v.radial_profile_png_base64) html += vizBlock('Radial Intensity Profile', v.radial_profile_png_base64);
-    if (v.probability_chart_png_base64) html += vizBlock('Classification Probabilities', v.probability_chart_png_base64);
-    if (v.feature_importance_png_base64) html += vizBlock('Top Contributing Features (SHAP)', v.feature_importance_png_base64);
-    html += `</div></div>`;
+    const tabs = [
+      ['overlay', 'Ring Overlay', v.overlay_png_base64],
+      ['radial', 'Radial Profile', v.radial_profile_png_base64],
+      ['prob', 'Probability Chart', v.probability_chart_png_base64],
+      ['shap', 'SHAP Features', v.feature_importance_png_base64],
+    ].filter(t => t[2]);
+    if (tabs.length) {
+      html += `<div class="card raised">
+        <div class="card-title">${iconLayers()} Visual Analysis</div>
+        <div class="tabs">`;
+      tabs.forEach(([key, label], i) => {
+        html += `<button class="tab-btn ${i === 0 ? 'active' : ''}" onclick="switchTab(this,'${key}')">${label}</button>`;
+      });
+      html += `</div>`;
+      tabs.forEach(([key, label, b64], i) => {
+        html += `<div class="tab-panel ${i === 0 ? 'active' : ''}" data-tab="${key}"><img src="data:image/png;base64,${b64}" alt="${label}" /></div>`;
+      });
+      html += `</div>`;
+    }
   }
 
   if (result.explainability && result.explainability.top_features && result.explainability.top_features.length) {
-    html += `<div class="card">
-      <div class="viz-title">Top Contributing Features</div>
-      <table>`;
+    html += `<div class="card raised">
+      <div class="card-title">${iconFlask()} Top Contributing Features</div>
+      <table class="plain">`;
     result.explainability.top_features.forEach(f => {
       html += `<tr><td>${escapeHtml(f.feature)}</td><td>${f.shap_value.toFixed(4)}</td></tr>`;
     });
     html += `</table></div>`;
   }
 
-  html += `<div style="font-size:11px;color:var(--text-secondary);text-align:center;">Analysis ID: ${result.analysis_id} · ${new Date(result.timestamp).toLocaleString()}</div>`;
+  html += `<div style="font-size:11px;color:var(--text-tertiary);text-align:center;margin-top:4px;">Analysis ID: ${result.analysis_id} · ${new Date(result.timestamp).toLocaleString()}</div>`;
+  html += `</div>`;
 
   resultsEl.innerHTML = html;
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function vizBlock(title, base64) {
-  return `<div><div class="viz-title">${title}</div><img src="data:image/png;base64,${base64}" alt="${title}" /></div>`;
+function switchTab(btn, key) {
+  const card = btn.closest('.card');
+  card.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  card.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  card.querySelector(`.tab-panel[data-tab="${key}"]`).classList.add('active');
 }
+
+/* ---------- history ---------- */
+async function loadHistory() {
+  const scroll = document.getElementById('historyScroll');
+  try {
+    const items = await (await fetch(`${API_BASE}/api/history?limit=10`)).json();
+    if (!items.length) {
+      scroll.innerHTML = `<div class="history-empty">No analyses yet — run one above and it'll show up here.</div>`;
+      return;
+    }
+    scroll.innerHTML = items.map(item => {
+      const label = LABEL_DISPLAY[item.research_classification] || item.research_classification || item.quality_status;
+      const when = new Date(item.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const conf = item.confidence != null ? `${(item.confidence * 100).toFixed(0)}% confidence` : item.quality_status;
+      return `<div class="history-card" onclick="loadPastAnalysis('${item.analysis_id}')">
+        <div class="hc-label">${escapeHtml(label || 'Unknown')}</div>
+        <div class="hc-meta">${conf}${item.uncertain ? ' · uncertain' : ''}</div>
+        <div class="hc-meta" style="margin-top:6px;">${when}</div>
+      </div>`;
+    }).join('');
+  } catch {
+    scroll.innerHTML = `<div class="history-empty">Could not load history.</div>`;
+  }
+}
+
+async function loadPastAnalysis(id) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/analysis/${id}`);
+    if (!resp.ok) throw new Error('not found');
+    const data = await resp.json();
+    renderResult(data);
+    document.getElementById('analyze').scrollIntoView({ behavior: 'smooth' });
+  } catch {
+    showError('Could not load that past analysis.');
+  }
+}
+document.getElementById('refreshHistory').addEventListener('click', loadHistory);
+loadHistory();
 
 function escapeHtml(str) {
   const div = document.createElement('div');
