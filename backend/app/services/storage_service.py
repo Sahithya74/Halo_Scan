@@ -1,80 +1,83 @@
-"""Analysis history storage — SQLite, no ORM, no personal identifiers (spec section 23).
-
-Only what's needed to render a history list: id, timestamp, quality status, result label,
-confidence, uncertainty flag, and a thumbnail path. No names, no device identifiers beyond
-what's harmless for debugging.
+"""Analysis history. Full results are encrypted at rest; only the fields needed to list
+and filter history (label, confidence, status, owner) are kept in the clear.
 """
 from __future__ import annotations
 
-import sqlite3
-from contextlib import contextmanager
-from pathlib import Path
+import json
 
-from app.config import settings
-
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS analyses (
-    analysis_id TEXT PRIMARY KEY,
-    timestamp TEXT NOT NULL,
-    quality_status TEXT NOT NULL,
-    research_classification TEXT,
-    confidence REAL,
-    uncertain INTEGER,
-    thumbnail_path TEXT,
-    result_json TEXT NOT NULL
-);
-"""
-
-
-@contextmanager
-def _connect():
-    conn = sqlite3.connect(str(settings.history_db_path))
-    try:
-        conn.execute(_SCHEMA)
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
+from app.db import connect
+from app.security.crypto import decrypt_str, encrypt_str
 
 
 def save_analysis(
     analysis_id: str, timestamp: str, quality_status: str,
     research_classification: str | None, confidence: float | None, uncertain: bool | None,
-    thumbnail_path: str | None, result_json: str,
+    result: dict, patient_id: int | None = None, performed_by: int | None = None,
+    input_type: str = "image", frames_analyzed: int | None = None,
 ) -> None:
-    with _connect() as conn:
+    with connect() as conn:
         conn.execute(
-            "INSERT OR REPLACE INTO analyses "
-            "(analysis_id, timestamp, quality_status, research_classification, confidence, "
-            "uncertain, thumbnail_path, result_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO analyses (analysis_id, timestamp, quality_status, "
+            "research_classification, confidence, uncertain, thumbnail_path, result_json, "
+            "patient_id, performed_by, input_type, frames_analyzed, encrypted) "
+            "VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, 1)",
             (analysis_id, timestamp, quality_status, research_classification, confidence,
-             int(bool(uncertain)) if uncertain is not None else None, thumbnail_path, result_json),
+             int(bool(uncertain)) if uncertain is not None else None,
+             encrypt_str(json.dumps(result)), patient_id, performed_by, input_type, frames_analyzed),
         )
+
+
+def _decode(row) -> dict:
+    raw = row["result_json"]
+    return json.loads(decrypt_str(raw) if row["encrypted"] else raw)
 
 
 def get_analysis(analysis_id: str) -> dict | None:
-    with _connect() as conn:
-        cur = conn.execute("SELECT result_json FROM analyses WHERE analysis_id = ?", (analysis_id,))
-        row = cur.fetchone()
-        if row is None:
-            return None
-        import json
-        return json.loads(row[0])
+    """Returns {"patient_id": ..., "result": {...}} or None."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT result_json, encrypted, patient_id FROM analyses WHERE analysis_id = ?", (analysis_id,)
+        ).fetchone()
+    if row is None:
+        return None
+    return {"patient_id": row["patient_id"], "result": _decode(row)}
 
 
-def list_history(limit: int = 50) -> list[dict]:
-    with _connect() as conn:
-        cur = conn.execute(
-            "SELECT analysis_id, timestamp, quality_status, research_classification, "
-            "confidence, uncertain FROM analyses ORDER BY timestamp DESC LIMIT ?",
-            (limit,),
-        )
-        rows = cur.fetchall()
+def list_history(limit: int = 50, patient_id: int | None = None) -> list[dict]:
+    sql = ("SELECT analysis_id, timestamp, quality_status, research_classification, confidence, "
+           "uncertain, patient_id, input_type FROM analyses")
+    params: tuple = ()
+    if patient_id is not None:
+        sql += " WHERE patient_id = ?"
+        params = (patient_id,)
+    sql += " ORDER BY timestamp DESC LIMIT ?"
+    with connect() as conn:
+        rows = conn.execute(sql, (*params, limit)).fetchall()
     return [
         {
-            "analysis_id": r[0], "timestamp": r[1], "quality_status": r[2],
-            "research_classification": r[3], "confidence": r[4],
-            "uncertain": bool(r[5]) if r[5] is not None else None,
+            "analysis_id": r["analysis_id"], "timestamp": r["timestamp"],
+            "quality_status": r["quality_status"], "research_classification": r["research_classification"],
+            "confidence": r["confidence"], "uncertain": bool(r["uncertain"]) if r["uncertain"] is not None else None,
+            "patient_id": r["patient_id"], "input_type": r["input_type"] or "image",
         }
         for r in rows
     ]
+
+
+def encrypt_legacy_rows() -> int:
+    """Encrypts results stored in plaintext by pre-v2 versions. Idempotent."""
+    with connect() as conn:
+        rows = conn.execute("SELECT analysis_id, result_json FROM analyses WHERE encrypted = 0").fetchall()
+        for r in rows:
+            conn.execute("UPDATE analyses SET result_json = ?, encrypted = 1 WHERE analysis_id = ?",
+                         (encrypt_str(r["result_json"]), r["analysis_id"]))
+    return len(rows)
+
+
+def class_counts() -> dict[str, int]:
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT COALESCE(research_classification, quality_status) AS k, COUNT(*) AS n "
+            "FROM analyses GROUP BY k"
+        ).fetchall()
+    return {r["k"]: r["n"] for r in rows}

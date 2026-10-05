@@ -7,8 +7,7 @@ Training uses only the `train` split; `validation` is reserved for future hyperp
 tuning (not done in this pass — see docs/validation.md); `test` is the untouched holdout
 used by evaluate_models(). Splits are session-grouped by synthetic_generator.py already.
 
-Only the four decision-support classes (csf_like/saline_like/saliva_like/other) are fed to
-the classifier. `invalid` (no-halo) synthetic samples are used to check that halo detection
+Only the decision-support classes in settings.class_labels are fed to the classifier. `invalid` (no-halo) synthetic samples are used to check that halo detection
 correctly rejects them (mixture ratio below the literature-reported threshold) — they never
 reach the classifier, mirroring the live pipeline where a NO_HALO_DETECTED sample never gets
 classified either.
@@ -33,11 +32,12 @@ from app.models.calibration import calibrate_and_fit
 from app.models.classical_ml import MODEL_BUILDERS
 from app.models.ensemble import ensemble_predict
 from app.models.uncertainty import fit_class_gaussians
+from app.services.comparison_service import compute_class_profiles
 from app.spreading_analysis.spreading import compute_spreading_profile
 
 logger = logging.getLogger(__name__)
 
-CLASSIFIER_CLASSES = list(settings.class_labels)  # csf_like, saline_like, saliva_like, other
+CLASSIFIER_CLASSES = list(settings.class_labels)
 
 
 def generate_synthetic_dataset(sessions_per_class: int = 40, seed: int = 42) -> dict:
@@ -131,6 +131,7 @@ def train_models() -> dict:
         "trained_on": _dt.datetime.now(_dt.timezone.utc).isoformat(),
         "n_train_samples": int(X_train.shape[0]),
         "n_dropped_no_halo": dropped,
+        "class_profiles": compute_class_profiles(X_train, y_train, CLASSIFIER_CLASSES),
         "synthetic": True,
         "disclaimer": "SYNTHETIC/DEMO DATA — not derived from real biological samples, not clinically validated.",
         "metrics": {},
