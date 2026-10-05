@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halo Scan — My results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6" fill="#fff" stroke="none"/></svg></span>
+    <span>Halo Scan<small>Patient portal</small></span></div>
+  <span class="spacer"></span>
+  <span class="secure-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Private &amp; encrypted</span>
+  <span class="user-chip"><span class="avatar" data-user-avatar></span><span data-user-name></span></span>
+  <span class="role-pill hidden" data-user-role></span>
+  <button class="btn on-dark sm" data-logout>Sign out</button>
+</header>
+
+<main class="page">
+  <div class="page-head">
+    <div><h1 id="greeting">My results</h1><p id="patient-code">Only you and your care team can see these results.</p></div>
+  </div>
+  <div class="grid-2">
+    <aside class="sticky">
+      <section class="card" data-reveal>
+        <div class="card-title">My analyses</div>
+        <div id="my-list"></div>
+      </section>
+    </aside>
+    <section id="results">
+      <div class="empty" data-reveal>
+        <div class="rings"><i></i><i></i><i></i><b></b></div>
+        <h3>Select a result</h3>
+        <p>Your halo test results appear on the left once your care team has analysed a sample.</p>
+      </div>
+    </section>
+  </div>
+</main>
+<script type="module" src="/assets/patient.js"></script>
+</body>
+</html>

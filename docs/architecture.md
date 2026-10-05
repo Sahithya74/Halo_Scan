@@ -88,3 +88,29 @@ reviewer would reason about, which matters more here than raw accuracy on fake d
   joblib) and could be exported and run via a lightweight on-device runtime if the target
   moves off a server call; not implemented in this pass since a Python server round-trip
   is sufficient for the current research prototype.
+
+## v2: roles, video and security
+
+```
+Browser (web_app/)                         FastAPI (backend/app)
+  index.html  login (3 portals)  ──POST /api/auth/login──▶ security/passwords (Argon2id)
+                                                          security/sessions (hashed tokens)
+  clinician.html  camera / 10s rec ─POST /api/analyze───▶ security/rbac (role + CSRF)
+                                                          ├─ photo → analysis_service.analyze_frame
+                                                          └─ video → video_service (8 frames →
+                                                             analyze_frame each → averaged)
+                                                          comparison_service (class profiles)
+                                                          storage_service ─ Fernet ─▶ SQLite
+  admin.html   users / audit     ──/api/admin/*────────▶ security/audit (SHA-256 hash chain)
+  patient.html own results       ──/api/me/*───────────▶ own patient_id only
+```
+
+- **One pipeline for photos and video.** `analyze_frame` is the single per-image step; a
+  video is 8 sampled frames through it, with probabilities averaged and frame agreement /
+  stability reported. Frame timestamps come from decoding (pass 1), not container metadata,
+  because browser-recorded WebM is variable-frame-rate.
+- **Data at rest.** `patients` stores name/MRN/DOB as Fernet ciphertext plus an HMAC blind
+  index of the MRN for lookups; `analyses.result_json` is encrypted (older plaintext rows are
+  encrypted at startup). Only the fields needed to list history are in the clear.
+- **Least privilege.** Administrators run the system but get 403 on patient results;
+  patients get 404 on anything not theirs, so record ids can't be probed.

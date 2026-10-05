@@ -31,3 +31,6 @@ flutter_app/.idea/
 Thumbs.db
 .vscode/
 *.log
+
+# Encryption keys, TLS certs
+backend/secrets/

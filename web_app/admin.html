@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halo Scan — Administration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6" fill="#fff" stroke="none"/></svg></span>
+    <span>Halo Scan<small>Administration</small></span></div>
+  <span class="spacer"></span>
+  <span class="secure-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Encrypted session</span>
+  <span class="role-pill" data-user-role></span>
+  <span class="user-chip"><span class="avatar" data-user-avatar></span><span data-user-name></span></span>
+  <button class="btn on-dark sm" data-logout>Sign out</button>
+</header>
+
+<main class="page">
+  <div class="page-head">
+    <div><h1>System administration</h1><p>Staff accounts, security audit trail and system health. Patient results are not visible to administrators.</p></div>
+    <div class="segmented" id="tabs">
+      <button type="button" class="active" data-tab="overview">Overview</button>
+      <button type="button" data-tab="users">Staff accounts</button>
+      <button type="button" data-tab="audit">Audit log</button>
+    </div>
+  </div>
+
+  <section data-panel="overview">
+    <div class="stats" id="overview-stats" style="margin-bottom:18px;"></div>
+    <div class="grid-cols" style="grid-template-columns:repeat(auto-fit,minmax(340px,1fr));align-items:start;">
+      <section class="card" data-tilt="3"><div class="card-title">Analyses by result</div><div id="by-result"></div></section>
+      <section class="card" data-tilt="3"><div class="card-title">Model card</div><div id="model-card"></div></section>
+      <section class="card" data-tilt="3"><div class="card-title">Security status</div><div id="security-status"></div></section>
+    </div>
+  </section>
+
+  <section data-panel="users" class="hidden">
+    <div class="grid-2" style="grid-template-columns:340px 1fr;">
+      <section class="card">
+        <div class="card-title">Create staff account</div>
+        <form id="user-form" novalidate>
+          <div class="form-error" id="user-error"></div>
+          <label class="field"><span>Full name</span><input name="display_name" required maxlength="120"></label>
+          <label class="field"><span>Username</span><input name="username" required maxlength="32" placeholder="firstname.lastname"></label>
+          <label class="field"><span>Role</span><select name="role"><option value="doctor">Doctor</option><option value="nurse">Nurse</option><option value="admin">Administrator</option></select></label>
+          <button class="btn block" type="submit" data-magnetic>Create account</button>
+        </form>
+        <p class="tiny muted" style="margin:12px 0 0;">A one-time temporary password is generated. The user must change it at first sign-in. Patients are registered by doctors/nurses.</p>
+      </section>
+      <section class="card"><div class="card-title">Accounts</div><div style="overflow:auto;"><table class="data" id="users-table"></table></div></section>
+    </div>
+  </section>
+
+  <section data-panel="audit" class="hidden">
+    <section class="card">
+      <div class="card-title">Tamper-evident audit trail <span class="right" id="chain-badge"></span></div>
+      <div style="overflow:auto;"><table class="data" id="audit-table"></table></div>
+    </section>
+  </section>
+</main>
+
+<div class="modal-backdrop" id="secret-modal">
+  <div class="modal">
+    <h2 id="secret-title">Temporary password</h2>
+    <p class="muted" style="margin:0;">Share this securely. It is shown <b>only once</b> and must be changed at first sign-in.</p>
+    <div class="secret-box" id="secret-body"></div>
+    <div class="modal-actions"><button class="btn" type="button" data-close-modal>Done</button></div>
+  </div>
+</div>
+
+<script type="module" src="/assets/admin.js"></script>
+</body>
+</html>

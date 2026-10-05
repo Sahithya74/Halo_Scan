@@ -1,8 +1,15 @@
-"""Shared pytest fixtures: hand-drawn synthetic test images (not the full generator) for
-fast, deterministic unit tests of the CV modules."""
+"""Shared pytest fixtures.
+
+- Hand-drawn synthetic test images for fast, deterministic CV unit tests.
+- An isolated database and encryption key for the whole test session, so tests never touch
+  the real analysis_history.db or secrets/data.key.
+- Signed-in TestClients for each role.
+"""
 from __future__ import annotations
 
+import itertools
 import sys
+import tempfile
 from pathlib import Path
 
 import cv2
@@ -10,6 +17,92 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.config import settings  # noqa: E402
+
+_TMP = Path(tempfile.mkdtemp(prefix="halo_test_"))
+settings.history_db_path = _TMP / "test.db"
+settings.secrets_dir = _TMP / "secrets"
+settings.secrets_dir.mkdir(parents=True, exist_ok=True)
+settings.data_key = ""
+settings.research_api_key = ""
+
+TEST_PASSWORD = "CorrectHorse42battery"
+_counter = itertools.count(1)
+
+
+def _unique(prefix: str) -> str:
+    return f"{prefix}{next(_counter)}"
+
+
+@pytest.fixture
+def make_user():
+    """Creates a user directly (bypassing the API) and returns (id, username, password)."""
+    from app.services import accounts_service
+
+    def factory(role: str, patient_id: int | None = None, must_change: bool = False):
+        username = _unique(f"t_{role}_")
+        uid = accounts_service.create_user(username, TEST_PASSWORD, role, f"Test {role}", None,
+                                           patient_id=patient_id, must_change_password=must_change)
+        return uid, username, TEST_PASSWORD
+    return factory
+
+
+@pytest.fixture
+def make_patient():
+    from app.services import accounts_service
+
+    def factory(create_login: bool = False):
+        return accounts_service.register_patient(_unique("MRN-"), "Jane Test", "1990-01-01", "F",
+                                                 created_by=None, create_login=create_login)
+    return factory
+
+
+def login(client, username: str, password: str, portal: str | None = None):
+    resp = client.post("/api/auth/login", json={"username": username, "password": password, "portal": portal})
+    assert resp.status_code == 200, resp.text
+    client.headers["X-CSRF-Token"] = client.cookies["halo_csrf"]
+    return client
+
+
+@pytest.fixture
+def client_for(make_user):
+    """client_for("nurse") -> signed-in TestClient (user dict in client.user)."""
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    clients = []
+
+    def factory(role: str, patient_id: int | None = None):
+        uid, username, password = make_user(role, patient_id=patient_id)
+        c = TestClient(app)
+        c.__enter__()
+        clients.append(c)
+        login(c, username, password)
+        c.user = {"id": uid, "username": username, "role": role, "patient_id": patient_id}
+        return c
+
+    yield factory
+    for c in clients:
+        c.__exit__(None, None, None)
+
+
+@pytest.fixture
+def anon_client():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture(autouse=True)
+def _clear_login_attempts():
+    """Keep the per-IP failed-login limit from leaking between tests (all share one IP)."""
+    yield
+    from app.db import connect
+    with connect() as conn:
+        conn.execute("DELETE FROM login_attempts")
 
 
 def _make_ring_image(size: int = 400, center=None, inner_r: int = 60, outer_r: int = 120,

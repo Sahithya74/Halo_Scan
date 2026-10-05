@@ -1,44 +1,75 @@
-"""Primary analysis endpoints (spec section 21)."""
+"""Analysis endpoints. Doctors/nurses run analyses; patients can only read their own."""
 from __future__ import annotations
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 
 from app.config import settings
 from app.models.registry import registry
 from app.schemas.analysis import AnalysisResult, HealthResponse, HistoryItem, ModelInfoResponse
-from app.services import storage_service
+from app.security import audit
+from app.security.rbac import STAFF_ROLES, client_ip, current_user, require_roles
+from app.security.sessions import SessionInfo
+from app.services import accounts_service, storage_service
 from app.services.analysis_service import run_full_analysis
 from app.services.granular_endpoints import classify_only, detect_halo_only, extract_features_only
 from app.services.image_quality_only import quality_check_only
+from app.services.video_service import VideoError, run_video_analysis
 
 router = APIRouter(prefix="/api", tags=["analysis"])
+staff_only = require_roles(*STAFF_ROLES)
 
-_MAX_UPLOAD_BYTES = 15 * 1024 * 1024
-_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
+
+
+def _base_type(content_type: str | None) -> str:
+    # Browsers send e.g. "video/webm;codecs=vp9" for MediaRecorder output.
+    return (content_type or "").split(";")[0].strip().lower()
+
+
+async def _read_upload(file: UploadFile, allowed: set[str]) -> tuple[bytes, str]:
+    ctype = _base_type(file.content_type)
+    if ctype not in allowed:
+        raise HTTPException(status_code=415, detail=f"Unsupported content type: {file.content_type}")
+    data = await file.read(settings.max_upload_bytes + 1)
+    if len(data) == 0:
+        raise HTTPException(status_code=400, detail="Empty file.")
+    if len(data) > settings.max_upload_bytes:
+        raise HTTPException(status_code=413, detail=f"File too large (max {settings.max_upload_bytes // (1024 * 1024)}MB).")
+    return data, ctype
 
 
 async def _read_validated_image(file: UploadFile) -> bytes:
-    if file.content_type not in _ALLOWED_CONTENT_TYPES:
-        raise HTTPException(status_code=415, detail=f"Unsupported content type: {file.content_type}")
-    data = await file.read()
-    if len(data) == 0:
-        raise HTTPException(status_code=400, detail="Empty file.")
-    if len(data) > _MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="File too large (max 15MB).")
+    data, _ = await _read_upload(file, _IMAGE_TYPES)
     return data
 
 
 @router.post("/analyze", response_model=AnalysisResult)
-async def analyze(file: UploadFile = File(...)) -> AnalysisResult:
-    data = await _read_validated_image(file)
+async def analyze(
+    request: Request, file: UploadFile = File(...), patient_id: int = Form(...),
+    user: SessionInfo = Depends(staff_only),
+) -> AnalysisResult:
+    patient = accounts_service.get_patient(patient_id)
+    if patient is None:
+        raise HTTPException(status_code=404, detail="Patient not found.")
+    data, ctype = await _read_upload(file, _IMAGE_TYPES | _VIDEO_TYPES)
+    kwargs = dict(patient_id=patient_id, patient_code=patient["patient_code"], performed_by=user.user_id)
     try:
-        return run_full_analysis(data)
-    except ValueError as e:
+        if ctype in _VIDEO_TYPES:
+            result = await run_in_threadpool(run_video_analysis, data, ctype, **kwargs)
+        else:
+            result = await run_in_threadpool(run_full_analysis, data, **kwargs)
+    except (ValueError, VideoError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    audit.record("analysis_run", user_id=user.user_id, username=user.username, role=user.role,
+                 target=f"analysis:{result.analysis_id}", ip=client_ip(request),
+                 detail=f"patient:{patient_id} input:{result.input_type} status:{result.status}")
+    return result
 
 
 @router.post("/quality-check")
-async def quality_check(file: UploadFile = File(...)) -> dict:
+async def quality_check(file: UploadFile = File(...), user: SessionInfo = Depends(staff_only)) -> dict:
     data = await _read_validated_image(file)
     try:
         return quality_check_only(data)
@@ -47,7 +78,7 @@ async def quality_check(file: UploadFile = File(...)) -> dict:
 
 
 @router.post("/detect-halo")
-async def detect_halo_endpoint(file: UploadFile = File(...)) -> dict:
+async def detect_halo_endpoint(file: UploadFile = File(...), user: SessionInfo = Depends(staff_only)) -> dict:
     data = await _read_validated_image(file)
     try:
         return detect_halo_only(data)
@@ -56,7 +87,7 @@ async def detect_halo_endpoint(file: UploadFile = File(...)) -> dict:
 
 
 @router.post("/extract-features")
-async def extract_features_endpoint(file: UploadFile = File(...)) -> dict:
+async def extract_features_endpoint(file: UploadFile = File(...), user: SessionInfo = Depends(staff_only)) -> dict:
     data = await _read_validated_image(file)
     try:
         return extract_features_only(data)
@@ -65,7 +96,7 @@ async def extract_features_endpoint(file: UploadFile = File(...)) -> dict:
 
 
 @router.post("/classify")
-async def classify_endpoint(file: UploadFile = File(...)) -> dict:
+async def classify_endpoint(file: UploadFile = File(...), user: SessionInfo = Depends(staff_only)) -> dict:
     data = await _read_validated_image(file)
     try:
         return classify_only(data)
@@ -74,20 +105,31 @@ async def classify_endpoint(file: UploadFile = File(...)) -> dict:
 
 
 @router.get("/analysis/{analysis_id}")
-async def get_analysis(analysis_id: str) -> dict:
-    result = storage_service.get_analysis(analysis_id)
-    if result is None:
+def get_analysis(analysis_id: str, request: Request, user: SessionInfo = Depends(current_user)) -> dict:
+    record = storage_service.get_analysis(analysis_id)
+    # Patients get the same 404 for "doesn't exist" and "not yours", so ids can't be probed.
+    if record is None or (user.role == "patient" and record["patient_id"] != user.patient_id):
         raise HTTPException(status_code=404, detail="Analysis not found.")
-    return result
+    if user.role == "admin":
+        raise HTTPException(status_code=403, detail="Administrators manage the system, not patient results.")
+    audit.record("analysis_view", user_id=user.user_id, username=user.username, role=user.role,
+                 target=f"analysis:{analysis_id}", ip=client_ip(request))
+    return record["result"]
 
 
 @router.get("/history", response_model=list[HistoryItem])
-async def history(limit: int = 50) -> list[HistoryItem]:
-    return [HistoryItem(**row) for row in storage_service.list_history(limit)]
+def history(limit: int = 50, patient_id: int | None = None, user: SessionInfo = Depends(current_user)) -> list[HistoryItem]:
+    if user.role == "patient":
+        patient_id = user.patient_id
+        if patient_id is None:
+            return []
+    elif user.role not in STAFF_ROLES:
+        raise HTTPException(status_code=403, detail="Your role cannot access this resource.")
+    return [HistoryItem(**row) for row in storage_service.list_history(min(limit, 200), patient_id)]
 
 
 @router.get("/model-info", response_model=ModelInfoResponse)
-async def model_info() -> ModelInfoResponse:
+def model_info(user: SessionInfo = Depends(current_user)) -> ModelInfoResponse:
     if not registry.loaded:
         raise HTTPException(status_code=503, detail="Model not loaded. Run scripts/train.py first.")
     return ModelInfoResponse(
@@ -99,5 +141,5 @@ async def model_info() -> ModelInfoResponse:
 
 
 @router.get("/health", response_model=HealthResponse)
-async def health() -> HealthResponse:
+def health() -> HealthResponse:
     return HealthResponse(status="ok", model_version=settings.model_version, model_loaded=registry.loaded)

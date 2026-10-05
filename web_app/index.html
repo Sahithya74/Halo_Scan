@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halo Scan — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="/assets/login.css">
+</head>
+<body class="login-body">
+  <div class="login-bg" aria-hidden="true">
+    <div class="halo-stage" data-parallax>
+      <i class="ring r1"></i><i class="ring r2"></i><i class="ring r3"></i><i class="ring r4"></i>
+      <i class="stain"></i>
+    </div>
+    <div class="grid-glow"></div>
+  </div>
+
+  <main class="login-wrap">
+    <section class="login-hero">
+      <div class="brand login-brand">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6" fill="#fff" stroke="none"/></svg></span>
+        <span>Halo Scan<small>Embedded halo-ring analysis</small></span>
+      </div>
+      <h1 class="display">See the ring.<br><em>Measure it.</em> Explain it.</h1>
+      <p>Capture a photo or a 10-second video of the halo test, and get ring measurements, the chance of each fluid
+        type, diagrams and a decision-support report in under a minute.</p>
+      <ul class="sec-list">
+        <li><b>Argon2id</b> password hashing &amp; account lockout</li>
+        <li><b>Encrypted</b> patient records and results at rest</li>
+        <li><b>Tamper-evident</b> audit trail of every access</li>
+        <li><b>Role-based</b> access — patients see only their own results</li>
+      </ul>
+    </section>
+
+    <section class="login-card" data-tilt="5">
+      <div id="signin-panel">
+        <h2>Sign in</h2>
+        <p class="muted" style="margin:4px 0 18px;">Choose your portal</p>
+        <div class="portal-tabs" role="tablist">
+          <button type="button" class="portal active" data-portal="staff" role="tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6 6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
+            Doctor / Nurse</button>
+          <button type="button" class="portal" data-portal="patient" role="tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            Patient</button>
+          <button type="button" class="portal" data-portal="admin" role="tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Administrator</button>
+        </div>
+
+        <form id="login-form" autocomplete="on" novalidate>
+          <div class="form-error" id="login-error" role="alert"></div>
+          <label class="field"><span>Username</span>
+            <input name="username" autocomplete="username" required maxlength="64" placeholder="e.g. demo.nurse"></label>
+          <label class="field"><span>Password</span>
+            <div class="pw-wrap"><input name="password" type="password" autocomplete="current-password" required maxlength="256">
+              <button type="button" class="pw-toggle" aria-label="Show password">show</button></div></label>
+          <button class="btn lg block" type="submit" data-magnetic id="login-btn">Sign in securely</button>
+        </form>
+        <p class="tiny muted" style="margin:14px 0 0;" id="portal-hint">Clinical staff: capture and analyse samples for your patients.</p>
+      </div>
+
+      <div id="change-panel" class="hidden">
+        <h2>Set a new password</h2>
+        <p class="muted" style="margin:4px 0 18px;">Your account uses a temporary password. Choose your own before continuing.</p>
+        <form id="change-form" novalidate>
+          <div class="form-error" id="change-error" role="alert"></div>
+          <label class="field"><span>Current (temporary) password</span>
+            <input name="current_password" type="password" autocomplete="current-password" required></label>
+          <label class="field"><span>New password</span>
+            <input name="new_password" type="password" autocomplete="new-password" required minlength="10"></label>
+          <label class="field"><span>Repeat new password</span>
+            <input name="repeat" type="password" autocomplete="new-password" required></label>
+          <div class="pw-rules tiny muted">At least 10 characters, with a letter and a digit, not containing your username.</div>
+          <button class="btn lg block" type="submit" style="margin-top:14px;">Save password &amp; continue</button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <footer class="login-foot">Research decision-support prototype · not a diagnostic device · <a href="/docs">API</a></footer>
+  <script type="module" src="/assets/login.js"></script>
+</body>
+</html>
