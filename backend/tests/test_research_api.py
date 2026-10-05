@@ -1,71 +1,46 @@
 import pytest
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
 
-from app.api.dependencies import require_research_api_key
 from app.config import settings
-from app.main import app
+
+_STUB = {"metadata_path": "stub", "n_samples": 0}
 
 
 @pytest.fixture(autouse=True)
-def reset_api_key():
+def stub_dataset_generation(monkeypatch):
+    monkeypatch.setattr("app.services.research_service.generate_synthetic_dataset",
+                        lambda sessions_per_class=40: _STUB)
     original = settings.research_api_key
     yield
     settings.research_api_key = original
 
 
-def test_require_research_api_key_passes_when_unconfigured():
-    settings.research_api_key = ""
-    require_research_api_key(provided_key=None)  # must not raise
+def test_research_requires_login(anon_client):
+    assert anon_client.post("/api/research/upload-dataset").status_code == 401
 
 
-def test_require_research_api_key_rejects_missing_key_when_configured():
+def test_research_rejects_non_admin(client_for):
+    assert client_for("doctor").post("/api/research/upload-dataset").status_code == 403
+
+
+def test_research_allows_admin_session(client_for):
+    resp = client_for("admin").post("/api/research/upload-dataset")
+    assert resp.status_code == 200
+    assert resp.json() == _STUB
+
+
+def test_research_api_key_works_when_configured(anon_client):
     settings.research_api_key = "secret123"
-    with pytest.raises(HTTPException) as exc_info:
-        require_research_api_key(provided_key=None)
-    assert exc_info.value.status_code == 401
-
-
-def test_require_research_api_key_rejects_wrong_key():
-    settings.research_api_key = "secret123"
-    with pytest.raises(HTTPException) as exc_info:
-        require_research_api_key(provided_key="wrong")
-    assert exc_info.value.status_code == 401
-
-
-def test_require_research_api_key_accepts_correct_key():
-    settings.research_api_key = "secret123"
-    require_research_api_key(provided_key="secret123")  # must not raise
-
-
-def test_research_endpoint_open_by_default(monkeypatch):
-    settings.research_api_key = ""
-    monkeypatch.setattr(
-        "app.services.research_service.generate_synthetic_dataset",
-        lambda sessions_per_class=40: {"metadata_path": "stub", "n_samples": 0},
-    )
-    with TestClient(app) as client:
-        resp = client.post("/api/research/upload-dataset")
+    resp = anon_client.post("/api/research/upload-dataset", headers={"X-API-Key": "secret123"})
     assert resp.status_code == 200
 
 
-def test_research_endpoint_rejects_without_key_when_configured(monkeypatch):
+def test_research_wrong_api_key_rejected(anon_client):
     settings.research_api_key = "secret123"
-    monkeypatch.setattr(
-        "app.services.research_service.generate_synthetic_dataset",
-        lambda sessions_per_class=40: {"metadata_path": "stub", "n_samples": 0},
-    )
-    with TestClient(app) as client:
-        resp = client.post("/api/research/upload-dataset")
+    resp = anon_client.post("/api/research/upload-dataset", headers={"X-API-Key": "wrong"})
     assert resp.status_code == 401
 
 
-def test_research_endpoint_accepts_correct_key(monkeypatch):
-    settings.research_api_key = "secret123"
-    monkeypatch.setattr(
-        "app.services.research_service.generate_synthetic_dataset",
-        lambda sessions_per_class=40: {"metadata_path": "stub", "n_samples": 0},
-    )
-    with TestClient(app) as client:
-        resp = client.post("/api/research/upload-dataset", headers={"X-API-Key": "secret123"})
-    assert resp.status_code == 200
+def test_research_api_key_ignored_when_not_configured(anon_client):
+    settings.research_api_key = ""
+    resp = anon_client.post("/api/research/upload-dataset", headers={"X-API-Key": "anything"})
+    assert resp.status_code == 401
