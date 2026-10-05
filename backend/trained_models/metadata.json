@@ -1,9 +1,11 @@
 {
-  "model_version": "demo-synthetic-v1",
+  "model_version": "demo-synthetic-v2",
   "classes": [
     "csf_like",
     "saline_like",
     "saliva_like",
+    "tear_like",
+    "nasal_mucus_like",
     "other"
   ],
   "feature_columns": [
@@ -80,82 +82,270 @@
     "spread_diffusion_index",
     "spread_directional_variance"
   ],
-  "trained_on": "2026-10-01T03:42:48.805397+00:00",
-  "n_train_samples": 210,
-  "n_dropped_no_halo": 10,
+  "trained_on": "2026-10-05T05:05:57.354203+00:00",
+  "n_train_samples": 317,
+  "n_dropped_no_halo": 13,
+  "class_profiles": {
+    "csf_like": {
+      "geo_ring_width_ratio": {
+        "mean": 0.28789587207986295,
+        "std": 0.02136981583655923
+      },
+      "spread_radius_normalized": {
+        "mean": 0.7919228070175439,
+        "std": 0.08406125381006788
+      },
+      "spread_diffusion_index": {
+        "mean": 0.7653807017543859,
+        "std": 0.0819193558058649
+      },
+      "color_ring_saturation_mean": {
+        "mean": 66.25642521160614,
+        "std": 7.310688352508537
+      },
+      "tex_glcm_entropy": {
+        "mean": 7.307338247566481,
+        "std": 0.09949368171662121
+      },
+      "geo_circularity": {
+        "mean": 0.9754350877192983,
+        "std": 0.003623194830778357
+      }
+    },
+    "saline_like": {
+      "geo_ring_width_ratio": {
+        "mean": 0.2986990811624974,
+        "std": 0.019421637157976523
+      },
+      "spread_radius_normalized": {
+        "mean": 0.7441454545454544,
+        "std": 0.10087197794176685
+      },
+      "spread_diffusion_index": {
+        "mean": 0.7125109090909092,
+        "std": 0.09733138085516693
+      },
+      "color_ring_saturation_mean": {
+        "mean": 63.697423681337874,
+        "std": 6.585434624644661
+      },
+      "tex_glcm_entropy": {
+        "mean": 7.349494633059838,
+        "std": 0.07722205681407389
+      },
+      "geo_circularity": {
+        "mean": 0.9752345454545456,
+        "std": 0.003513724684295116
+      }
+    },
+    "saliva_like": {
+      "geo_ring_width_ratio": {
+        "mean": 0.21514721252241906,
+        "std": 0.09893317514342782
+      },
+      "spread_radius_normalized": {
+        "mean": 0.925037037037037,
+        "std": 0.2229272089272858
+      },
+      "spread_diffusion_index": {
+        "mean": 0.8958666666666668,
+        "std": 0.2469684355300251
+      },
+      "color_ring_saturation_mean": {
+        "mean": 108.48095150102485,
+        "std": 19.47485048239396
+      },
+      "tex_glcm_entropy": {
+        "mean": 6.2827185414377755,
+        "std": 0.24477735473738388
+      },
+      "geo_circularity": {
+        "mean": 0.9755814814814815,
+        "std": 0.0041819308881616835
+      }
+    },
+    "tear_like": {
+      "geo_ring_width_ratio": {
+        "mean": 0.29834719488187,
+        "std": 0.023314655558073015
+      },
+      "spread_radius_normalized": {
+        "mean": 0.7014137254901962,
+        "std": 0.0901318315941315
+      },
+      "spread_diffusion_index": {
+        "mean": 0.6648039215686274,
+        "std": 0.08758616365073123
+      },
+      "color_ring_saturation_mean": {
+        "mean": 64.00640747643065,
+        "std": 6.354788753519421
+      },
+      "tex_glcm_entropy": {
+        "mean": 7.3385237001996355,
+        "std": 0.11363361390799842
+      },
+      "geo_circularity": {
+        "mean": 0.9743705882352941,
+        "std": 0.0035777248832538464
+      }
+    },
+    "nasal_mucus_like": {
+      "geo_ring_width_ratio": {
+        "mean": 0.2853769990556194,
+        "std": 0.16061779355831485
+      },
+      "spread_radius_normalized": {
+        "mean": 0.8606244897959183,
+        "std": 0.21051218058763274
+      },
+      "spread_diffusion_index": {
+        "mean": 0.8033979591836735,
+        "std": 0.2476612214459098
+      },
+      "color_ring_saturation_mean": {
+        "mean": 106.53414212302056,
+        "std": 20.530061944762657
+      },
+      "tex_glcm_entropy": {
+        "mean": 6.398752966261635,
+        "std": 0.31124606265508387
+      },
+      "geo_circularity": {
+        "mean": 0.971930612244898,
+        "std": 0.005244324593451742
+      }
+    },
+    "other": {
+      "geo_ring_width_ratio": {
+        "mean": 0.4279527490462677,
+        "std": 0.20795872001004737
+      },
+      "spread_radius_normalized": {
+        "mean": 0.7582019607843138,
+        "std": 0.23425688554987634
+      },
+      "spread_diffusion_index": {
+        "mean": 0.6073294117647059,
+        "std": 0.27620131709736767
+      },
+      "color_ring_saturation_mean": {
+        "mean": 77.80564398478742,
+        "std": 27.675990292198367
+      },
+      "tex_glcm_entropy": {
+        "mean": 6.567464074850592,
+        "std": 0.7063761429744445
+      },
+      "geo_circularity": {
+        "mean": 0.9640313725490197,
+        "std": 0.015373372576979289
+      }
+    }
+  },
   "synthetic": true,
   "disclaimer": "SYNTHETIC/DEMO DATA \u2014 not derived from real biological samples, not clinically validated.",
   "metrics": {
-    "accuracy": 0.7447,
-    "precision_macro": 0.7367,
-    "recall_macro": 0.7527,
-    "f1_macro": 0.738,
+    "accuracy": 0.6883,
+    "precision_macro": 0.6708,
+    "recall_macro": 0.6855,
+    "f1_macro": 0.6674,
     "confusion_matrix": [
+      [
+        4,
+        4,
+        0,
+        1,
+        0,
+        0
+      ],
       [
         5,
         4,
         0,
-        0
-      ],
-      [
         5,
-        9,
         0,
         0
       ],
       [
         0,
         0,
-        8,
+        7,
+        0,
+        1,
         0
       ],
       [
+        4,
+        0,
+        0,
+        17,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
         1,
         0,
+        7,
+        0
+      ],
+      [
+        0,
+        0,
         2,
-        13
+        0,
+        1,
+        14
       ]
     ],
     "confusion_matrix_labels": [
       "csf_like",
       "saline_like",
       "saliva_like",
+      "tear_like",
+      "nasal_mucus_like",
       "other"
     ],
     "roc_auc_per_class": {
-      "csf_like": 0.8363,
-      "saline_like": 0.8896,
-      "saliva_like": 0.9712,
-      "other": 0.9657
+      "csf_like": 0.8905,
+      "saline_like": 0.8016,
+      "saliva_like": 0.9837,
+      "tear_like": 0.9235,
+      "nasal_mucus_like": 0.9891,
+      "other": 0.9961
     },
     "pr_auc_per_class": {
-      "csf_like": 0.4137,
-      "saline_like": 0.8084,
-      "saliva_like": 0.7603,
-      "other": 0.9559
+      "csf_like": 0.3816,
+      "saline_like": 0.4957,
+      "saliva_like": 0.8867,
+      "tear_like": 0.8176,
+      "nasal_mucus_like": 0.9249,
+      "other": 0.9888
     },
-    "csf_like_sensitivity": 0.5556,
-    "csf_like_specificity": 0.8421,
-    "csf_like_ppv": 0.4545,
-    "csf_like_npv": 0.8889,
+    "csf_like_sensitivity": 0.4444,
+    "csf_like_specificity": 0.8676,
+    "csf_like_ppv": 0.3077,
+    "csf_like_npv": 0.9219,
     "csf_like_confusion": {
-      "tp": 5,
-      "tn": 32,
-      "fp": 6,
-      "fn": 4
+      "tp": 4,
+      "tn": 59,
+      "fp": 9,
+      "fn": 5
     },
     "note": "Computed on SYNTHETIC data. NOT a clinical sensitivity/specificity estimate.",
     "calibration": {
-      "expected_calibration_error": 0.0984,
-      "brier_score": 0.0905
+      "expected_calibration_error": 0.0538,
+      "brier_score": 0.0678
     },
     "disclaimer": "All metrics computed on SYNTHETIC/DEMO data. Not a clinical validation study.",
-    "n_test_samples": 47,
-    "n_dropped_no_halo": 5,
+    "n_test_samples": 77,
+    "n_dropped_no_halo": 0,
     "halo_gate_check_on_invalid_class": {
-      "invalid_samples_tested": 8,
-      "correctly_rejected": 5,
-      "rejection_rate": 0.625
+      "invalid_samples_tested": 4,
+      "correctly_rejected": 3,
+      "rejection_rate": 0.75
     }
   }
 }

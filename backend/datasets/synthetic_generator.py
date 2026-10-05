@@ -10,9 +10,10 @@ the literature's description of the chromatography-like halo test:
   - a `mixture_ratio` below ~0.3 produces no separated ring at all (matches the reported
     minimum fluid:blood ratio needed for a visible halo)
 
-CSF-like and saline-like classes intentionally overlap heavily (they are optically very
-similar in real life — that is the whole point of the project's medical-safety framing).
-Saliva-like is more distinct (higher viscosity/turbidity limits spread and adds texture).
+CSF-like, saline-like and tear-like classes intentionally overlap heavily (they are optically
+very similar in real life — that is the whole point of the project's medical-safety framing).
+Saliva-like and nasal-mucus-like are more distinct (higher viscosity/turbidity limits spread
+and adds texture) but partly overlap each other.
 `other` spans a wide, atypical parameter range as a catch-all/out-of-distribution stand-in.
 
 Every image and every metadata row is explicitly tagged as synthetic.
@@ -31,7 +32,7 @@ CANVAS_SIZE = 512
 PAD_RADIUS_MAX = CANVAS_SIZE * 0.47
 MIXTURE_RATIO_HALO_THRESHOLD = 0.30  # below this, no visible ring forms (literature-grounded)
 
-CLASSES = ("csf_like", "saline_like", "saliva_like", "other", "invalid")
+CLASSES = ("csf_like", "saline_like", "saliva_like", "tear_like", "nasal_mucus_like", "other", "invalid")
 
 # (low, high) uniform ranges per class. Deliberately overlapping for csf_like/saline_like.
 CLASS_PARAM_RANGES: dict[str, dict[str, tuple[float, float]]] = {
@@ -49,6 +50,20 @@ CLASS_PARAM_RANGES: dict[str, dict[str, tuple[float, float]]] = {
         mixture_ratio=(0.50, 0.90), ring_width_ratio=(0.15, 0.30), spread_radius=(0.35, 0.60),
         decay_softness=(0.10, 0.22), texture_noise=(0.10, 0.22), center_disp=(0.02, 0.08),
         ring_hue_shift=(5, 20),
+    ),
+    # Tears: clear, low-protein, low-viscosity — spreads like saline/CSF, so its ranges
+    # overlap those two by design (tear vs saline is not separable from a photo either).
+    "tear_like": dict(
+        mixture_ratio=(0.50, 0.90), ring_width_ratio=(0.30, 0.46), spread_radius=(0.58, 0.90),
+        decay_softness=(0.33, 0.52), texture_noise=(0.03, 0.08), center_disp=(0.0, 0.05),
+        ring_hue_shift=(-10, 4),
+    ),
+    # Nasal mucus: viscous and turbid with a yellowish tint — spreads less, more texture.
+    # Partially overlaps saliva_like (both mucin-rich).
+    "nasal_mucus_like": dict(
+        mixture_ratio=(0.45, 0.85), ring_width_ratio=(0.16, 0.32), spread_radius=(0.38, 0.66),
+        decay_softness=(0.10, 0.25), texture_noise=(0.14, 0.28), center_disp=(0.03, 0.10),
+        ring_hue_shift=(14, 30),
     ),
     "other": dict(
         mixture_ratio=(0.40, 0.95), ring_width_ratio=(0.05, 0.55), spread_radius=(0.20, 0.98),
