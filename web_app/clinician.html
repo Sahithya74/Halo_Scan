@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halo Scan — Clinical workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6" fill="#fff" stroke="none"/></svg></span>
+    <span>Halo Scan<small>Clinical workspace</small></span></div>
+  <span class="spacer"></span>
+  <span class="secure-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Encrypted session</span>
+  <span class="role-pill" data-user-role></span>
+  <span class="user-chip"><span class="avatar" data-user-avatar></span><span data-user-name></span></span>
+  <button class="btn on-dark sm" data-logout>Sign out</button>
+</header>
+
+<main class="page">
+  <div class="page-head">
+    <div><h1>Halo sample analysis</h1><p>Select a patient, capture a photo or a 10-second video of the halo test, and analyse it.</p></div>
+    <span class="badge neutral" id="model-status">checking model…</span>
+  </div>
+
+  <div class="grid-2">
+    <aside class="sticky">
+      <section class="card" data-reveal>
+        <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
+          1 · Patient <button class="btn sm right" id="register-btn" type="button">+ Register</button></div>
+        <input id="patient-search" placeholder="Search name, patient code or exact MRN" autocomplete="off">
+        <div class="patient-list" id="patient-list" style="margin-top:10px;"></div>
+        <div id="patient-selected" class="hidden" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px;">
+          <div class="tiny muted" style="font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Previous results</div>
+          <div id="patient-history" style="margin-top:8px;"></div>
+        </div>
+      </section>
+
+      <section class="card" data-reveal>
+        <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          2 · Capture</div>
+        <div class="segmented" id="mode-tabs" style="margin-bottom:12px;">
+          <button type="button" class="active" data-mode="photo">Photo</button>
+          <button type="button" data-mode="video">Video 10s</button>
+          <button type="button" data-mode="upload">Upload</button>
+        </div>
+
+        <div class="camera" id="camera">
+          <div id="camera-msg">Camera is off.<br><span class="tiny">Place the sample pad inside the circle under even light.</span></div>
+          <video id="camera-video" class="hidden" playsinline muted></video>
+          <img id="photo-preview" class="hidden" alt="Captured photo">
+          <video id="video-preview" class="hidden" playsinline controls></video>
+          <div class="guide hidden" id="guide"><i></i></div>
+          <div class="rec-badge hidden" id="rec-badge"><span class="dot"></span>REC</div>
+          <div class="countdown hidden" id="countdown">
+            <svg viewBox="0 0 58 58"><circle cx="29" cy="29" r="25" fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.25)" stroke-width="5"/>
+              <circle id="countdown-ring" cx="29" cy="29" r="25" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="157.1" stroke-dashoffset="0"/></svg>
+            <b id="countdown-num">10</b>
+          </div>
+        </div>
+        <input type="file" id="file-input" class="hidden" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime">
+
+        <div class="capture-actions" id="actions-camera">
+          <button class="btn ghost" type="button" id="cam-btn">Start camera</button>
+          <button class="btn warm" type="button" id="shoot-btn" disabled>Capture photo</button>
+        </div>
+        <div class="capture-actions hidden" id="actions-upload">
+          <button class="btn ghost" type="button" id="choose-btn">Choose image or video…</button>
+        </div>
+        <div class="tiny muted" id="capture-status" style="margin-top:8px;">Nothing captured yet.</div>
+
+        <button class="btn lg block" type="button" id="analyze-btn" style="margin-top:14px;" disabled data-magnetic>Analyse sample</button>
+        <div class="stages hidden" id="stages"></div>
+      </section>
+    </aside>
+
+    <section id="results">
+      <div class="empty" data-reveal>
+        <div class="rings"><i></i><i></i><i></i><b></b></div>
+        <h3>No analysis yet</h3>
+        <p>Pick a patient and capture a sample. The verdict, ring measurements, chances of each fluid type,
+          comparison and diagrams will appear here.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="modal-backdrop" id="register-modal">
+  <div class="modal">
+    <div id="register-form-wrap">
+      <h2>Register patient</h2>
+      <p class="muted" style="margin:0 0 16px;">Identifiers are encrypted before they are stored.</p>
+      <form id="register-form" novalidate>
+        <div class="form-error" id="register-error"></div>
+        <label class="field"><span>Full name</span><input name="name" required maxlength="120"></label>
+        <div class="form-row">
+          <label class="field"><span>Medical record no.</span><input name="mrn" required maxlength="40"></label>
+          <label class="field"><span>Date of birth</span><input name="dob" type="date"></label>
+        </div>
+        <label class="field"><span>Sex</span><select name="sex"><option value="">Not recorded</option><option value="F">Female</option><option value="M">Male</option><option value="X">Other</option></select></label>
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600;">
+          <input type="checkbox" name="create_login" checked style="width:auto;"> Create a patient login so they can view their results</label>
+        <div class="modal-actions"><button class="btn ghost" type="button" data-close-modal>Cancel</button><button class="btn" type="submit">Register</button></div>
+      </form>
+    </div>
+    <div id="register-done" class="hidden">
+      <h2>Patient registered</h2>
+      <p class="muted" style="margin:0;">Give these one-time credentials to the patient. They are shown <b>only now</b>; the patient must set a new password on first sign-in.</p>
+      <div class="secret-box" id="register-secret"></div>
+      <div class="modal-actions"><button class="btn" type="button" data-close-modal>Done</button></div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/assets/clinician.js"></script>
+</body>
+</html>
