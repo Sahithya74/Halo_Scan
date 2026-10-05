@@ -83,6 +83,8 @@ building a real evaluation pipeline.
 | `csf_like` | 0.30–0.45 | 0.65–0.95 | slow | low | low | Overlaps heavily with `saline_like` by design |
 | `saline_like` | 0.28–0.48 | 0.60–0.95 | slow | low | low | Overlaps heavily with `csf_like` by design |
 | `saliva_like` | 0.15–0.30 | 0.35–0.60 | fast | high (mucin texture) | moderate | Distinct — higher viscosity limits spread |
+| `tear_like` (v2) | 0.30–0.46 | 0.58–0.90 | slow | low | low | Clear, low-protein; overlaps CSF/saline by design |
+| `nasal_mucus_like` (v2) | 0.16–0.32 | 0.38–0.66 | fast | very high | moderate | Viscous, turbid, yellowish hue; partly overlaps saliva |
 | `other` | wide random range spanning/exceeding the above | — | — | high | high | Catch-all / out-of-distribution stand-in |
 | `invalid` | ring absent or mixture_ratio below threshold | n/a | n/a | high (blur/noise/poor exposure) | n/a | No usable halo — quality gate should reject before classification |
 

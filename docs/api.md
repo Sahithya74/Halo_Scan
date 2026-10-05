@@ -3,10 +3,40 @@
 Base URL: `http://localhost:8000` (default `uvicorn` dev server). All endpoints are under
 `/api`. FastAPI auto-generates interactive docs at `/docs` when the server is running.
 
+## Authentication (v2)
+
+Everything except `GET /api/health` and `POST /api/auth/login` requires a signed-in session.
+
+- `POST /api/auth/login` `{username, password, portal?}` → sets an HttpOnly `halo_session`
+  cookie and a readable `halo_csrf` cookie. `portal` (`admin` | `staff` | `patient`) rejects
+  sign-in through the wrong tab. 401 = wrong credentials (same message whether or not the
+  user exists); 429 = locked out / rate-limited.
+- Every POST/PATCH must send the `halo_csrf` cookie value in an `X-CSRF-Token` header.
+- `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/change-password`
+  `{current_password, new_password}`. While `must_change_password` is true, all other
+  endpoints return `403 password_change_required`.
+
+| Endpoint | Roles |
+|---|---|
+| `GET/POST /api/admin/users`, `PATCH /api/admin/users/{id}` (`active`, `reset_password`) | admin |
+| `GET /api/admin/audit` (entries + `chain.verified`), `GET /api/admin/stats` | admin |
+| `GET/POST /api/patients` (register; returns a one-time patient login), `GET /api/patients/{id}`, `GET /api/patients/{id}/analyses` | doctor, nurse |
+| `POST /api/analyze` and the granular `/api/quality-check` etc. | doctor, nurse |
+| `GET /api/analysis/{id}`, `GET /api/history` | doctor, nurse; patient (own only) |
+| `GET /api/me/analyses`, `GET /api/me/patient` | patient |
+| `/api/research/*` | admin, or `X-API-Key` when `HALO_RESEARCH_API_KEY` is set |
+
 ## Analysis
 
 ### `POST /api/analyze`
-Primary endpoint — full pipeline in one call. `multipart/form-data`, field `file` (JPEG/PNG/WebP, ≤15MB).
+Primary endpoint — full pipeline in one call. `multipart/form-data` with `patient_id` and
+`file`: a photo (JPEG/PNG/WebP) **or a video** (MP4/WebM/QuickTime, ≤15 s), ≤25 MB.
+For video, 8 frames are sampled and analysed, probabilities are averaged, and the response
+adds a `video` block (duration, frames used, frame agreement, stability, per-frame labels
+and thumbnails) plus `visualizations.frame_timeline_png_base64`. v2 responses also include
+`input_type`, `processing_ms`, `patient_code`, `comparison` (similarity to each class's
+reference profile + radar chart), `model_card` (real measured accuracy) and
+`visualizations.source_image_jpeg_base64`.
 
 Response: `AnalysisResult` (see `backend/app/schemas/analysis.py`). Key shape:
 ```json
@@ -71,11 +101,9 @@ Returns model version, classes, training timestamp, and the full metrics report 
 
 ## Research mode (`/api/research/*`, spec Page 8 — not a clinical interface)
 
-**Authentication**: every `/api/research/*` endpoint requires an `X-API-Key` header
-matching the `HALO_RESEARCH_API_KEY` environment variable, since these endpoints can
-retrain the live model. If that env var is unset (the local-dev default), the endpoints
-are open and the server logs a one-time startup warning — set it before exposing this
-service beyond localhost:
+**Authentication**: these endpoints can retrain the live model, so they require an
+**administrator session**. For headless scripts, an `X-API-Key` header matching
+`HALO_RESEARCH_API_KEY` is accepted instead — only when that variable is set:
 ```
 export HALO_RESEARCH_API_KEY=some-long-random-value   # or set in backend/.env
 curl -X POST http://localhost:8000/api/research/train -H "X-API-Key: some-long-random-value"

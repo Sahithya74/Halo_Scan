@@ -16,25 +16,34 @@ that limitation structural, not a footnote.
 ## Proposed solution
 
 A smartphone photo of the pad → a CV pipeline that detects and measures the ring pattern →
-a calibrated ML ensemble that classifies it as CSF-like / saline-like / saliva-like / other
+a calibrated ML ensemble that gives the chance of CSF-like / saline-like / saliva-like /
+tear-like / nasal-mucus-like / other
 → a decision-support message that always recommends lab confirmation rather than presenting
 a label as a diagnosis. See `docs/architecture.md` for the full pipeline diagram.
 
 ## Status of this build
 
 Software-only (hardware — phone stand, ring light, sample pad — deferred).
-- **Backend** (`backend/`): FastAPI + OpenCV + scikit-learn. Full pipeline implemented,
-  dependencies installed, trained on the synthetic dataset, and verified end-to-end —
-  49/49 tests pass, real metrics in `docs/validation.md` (not placeholders).
-- **Web demo** (`web_demo/`): a lightweight single-page frontend served by the backend
-  itself at the server **root** — the whole project (frontend + backend + database) is
-  reachable from one URL. Upload/drag an image, see the quality check, ring overlay,
-  classification, SHAP explanation, and decision-support message. No install required;
-  this is what to open to see the system work without Flutter.
+- **Backend** (`backend/`): FastAPI + OpenCV + scikit-learn. Photo **and 10-second video**
+  analysis, role-based access, encrypted patient data, tamper-evident audit log. 80/80 tests
+  pass; real metrics in `docs/validation.md`.
+- **Web app** (`web_app/`): served by the backend at the server root — one URL for the whole
+  system. Role-based login (administrator / doctor·nurse / patient), live camera capture and
+  10-second recording, and a bold result report with measurement diagram, chances of each
+  fluid (CSF / saline / saliva / tear / nasal mucus / other), comparison radar, video frame
+  timeline and printable report.
 - **Flutter app** (`flutter_app/`): written as real Dart code but **unverified** — no
-  Flutter SDK on the dev machine. See `flutter_app/README.md` before trusting it.
-- **Database**: SQLite, file-based, created automatically on first analysis
-  (`backend/analysis_history.db`) — no separate database server to run.
+  Flutter SDK on the dev machine, and not yet updated for login. See `flutter_app/README.md`.
+- **Database**: SQLite, file-based, created automatically (`backend/analysis_history.db`) —
+  no separate database server to run. Patient identifiers and results are encrypted inside it.
+
+## Roles
+
+| Role | Can | Cannot |
+|---|---|---|
+| Administrator | Create/deactivate staff accounts, reset passwords, view audit log, system stats, model card, research mode | See patient results |
+| Doctor / Nurse | Register patients (issues them a login), capture and analyse samples, view their patients' results | Manage staff, see the audit log |
+| Patient | See their own results with a plain-language explanation | See anyone else's results, run analyses |
 - **Dataset** (`backend/datasets/`, `docs/dataset.md`): no public dataset exists for this
   problem (confirmed by search); a procedural synthetic generator was built instead, with
   deliberately overlapping CSF-like/saline-like parameter distributions reflecting the
@@ -49,8 +58,9 @@ this pass — the MVP only assumes a smartphone camera and controlled lighting.
 
 - **Backend**: Python, FastAPI, OpenCV, NumPy, SciPy, scikit-image, scikit-learn, SHAP,
   Matplotlib, SQLite. See `backend/README.md`.
-- **Web demo**: a single static HTML/CSS/JS page (`web_demo/index.html`), no build step,
-  served by the backend itself — the verified way to see the system work in a browser.
+- **Web app**: static HTML/CSS/JS modules (`web_app/`), no build step, served by the backend
+  itself. Pointer-driven motion (3D tilt, magnetic buttons, animated halo rings), disabled
+  automatically for users who prefer reduced motion.
 - **Mobile**: Flutter/Dart (unverified scaffold). See `flutter_app/README.md`.
 
 ## Architecture
@@ -83,14 +93,23 @@ See `flutter_app/README.md`.
 
 ## Security
 
-- No PII stored — analysis history is keyed by random IDs only (`backend/app/services/storage_service.py`).
-- Uploaded images are processed in-memory and not persisted to disk.
-- Upload validation: content-type allowlist, 15MB size cap (`backend/app/api/routes_analysis.py`).
-- `/api/research/*` (dataset generation/train/evaluate — can retrain the live model)
-  requires an `X-API-Key` header when `HALO_RESEARCH_API_KEY` is set; open with a logged
-  warning otherwise (local-dev default). See `docs/api.md`.
-- CORS is wide-open (`allow_origins=["*"]`) for local development — tighten before any
-  real deployment (`backend/app/main.py`).
+- **Passwords**: Argon2id hashes; ≥10 chars with a letter and digit; temporary passwords
+  must be changed at first sign-in; 5 failures → 15-min lockout, plus a per-IP limit.
+- **Sessions**: random server-side tokens (only their SHA-256 is stored), HttpOnly +
+  SameSite=Strict cookies, CSRF token on every write, 30-min idle / 8-h absolute expiry.
+- **Encryption at rest**: patient name, record number, date of birth and every stored result
+  are encrypted with Fernet (AES + HMAC). The key lives in `backend/secrets/data.key`
+  (gitignored) or `HALO_DATA_KEY` — **back it up; losing it makes the data unreadable**.
+- **Access control**: role checks on every endpoint; patients get 404 for records that aren't
+  theirs; administrators manage the system but cannot open patient results.
+- **Audit trail**: logins, failures, lockouts, patient registrations, analyses and record
+  views are written to a SHA-256 hash-chained log; the admin page shows whether it verifies.
+- **HTTP hardening**: strict Content-Security-Policy (no inline scripts), `X-Frame-Options:
+  DENY`, `nosniff`, no-referrer, `no-store` on API responses, camera-only permissions policy;
+  CORS closed by default.
+- **Uploads**: content-type allowlist, 25 MB / 15 s limits; the raw upload is processed in
+  memory or a temp file deleted immediately. A downsized copy of the analysed image/frame is
+  kept inside the encrypted result so the report can show it later.
 
 ## Limitations
 
@@ -107,20 +126,31 @@ python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r requirements.txt
 ```
 
-## Running everything (backend + web demo + database)
+## Running everything (web app + backend + database)
 
-The database is SQLite and needs no separate process — it's created automatically the
-first time an analysis is saved. Starting the backend starts everything:
+1. Create accounts — either a real administrator (prompts for a password):
+   ```
+   cd backend
+   .venv/Scripts/python.exe ../scripts/create_admin.py --username admin --name "College Admin"
+   ```
+   or demo accounts for every role, with random passwords printed once:
+   ```
+   .venv/Scripts/python.exe ../scripts/seed_demo_users.py
+   ```
+2. Start the server (the SQLite database needs no separate process):
+   ```
+   .venv/Scripts/python.exe -m uvicorn app.main:app
+   ```
+3. Open **http://localhost:8000/** and sign in. The camera works on `localhost` directly.
 
+**Using the camera from a phone/tablet on the same network** needs HTTPS (browsers block the
+camera on plain HTTP except for localhost):
 ```
-cd backend
-.venv/Scripts/python.exe -m uvicorn app.main:app --reload
+.venv/Scripts/python.exe ../scripts/make_dev_cert.py --host <your-LAN-IP>
+set HALO_COOKIE_SECURE=true
+.venv/Scripts/python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8443 --ssl-keyfile secrets/dev-key.pem --ssl-certfile secrets/dev-cert.pem
 ```
-
-**That's the whole project at one URL: http://localhost:8000/** — frontend, backend API,
-and database are all behind it. The interactive API docs are at
-http://localhost:8000/docs. If no model has been trained yet, run the Training steps below
-first (the page still loads, but classification results require a trained model).
+then open `https://<your-LAN-IP>:8443/` on the phone and accept the certificate warning once.
 
 ## Training
 

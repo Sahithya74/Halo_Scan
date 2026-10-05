@@ -1,4 +1,9 @@
-# Halo Scan — Flutter App (UNVERIFIED)
+# Halo Scan — Flutter App (UNVERIFIED, OUT OF DATE)
+
+> **Behind the web app.** Since v2 the backend requires a signed-in session (cookie + CSRF
+> header) and `POST /api/analyze` needs a `patient_id`. This scaffold predates that and has no
+> login screen, so its API calls will now return 401. The maintained frontend is `web_app/`;
+> see `docs/api.md` → Authentication before updating this app.
 
 This app was written without the Flutter SDK installed on the development machine, so it
 has **not been compiled, analyzed, or run**. Treat it as a structural scaffold, not

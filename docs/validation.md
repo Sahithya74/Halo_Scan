@@ -2,59 +2,73 @@
 
 **These are not clinical validation results.** Every number below comes from
 `scripts/evaluate.py` run against the held-out `test` split of the **procedurally
-generated synthetic dataset** described in `docs/dataset.md` (385 samples total, 128
-sessions across 5 classes, split by session 70/15/15). They measure how well the pipeline
-recovers known synthetic generation parameters — not how it would perform on real CSF,
-saline, or saliva samples.
+generated synthetic dataset** described in `docs/dataset.md` (556 samples, 280 sessions
+across 7 generator classes, split by session 70/15/15). They measure how well the pipeline
+recovers known synthetic generation parameters — not how it would perform on real fluids.
 
-## Results (synthetic test split, n=47 classifier-eligible samples)
+**Why there is no "100% accuracy".** No image-based method can reach it for this task: CSF,
+saline and tears form optically near-identical halos (the literature result the whole
+project is built around). The app shows the calibrated confidence of each result and this
+page's real measured accuracy in its model card instead.
 
-| Metric | Value |
-|---|---|
-| Accuracy | 0.745 |
-| Macro precision | 0.737 |
-| Macro recall | 0.753 |
-| Macro F1 | 0.738 |
-| Expected Calibration Error | 0.098 |
-| Brier score | 0.091 |
+## Results — model v2, 6 classes (synthetic test split, n=77)
 
-Confusion matrix (rows = true, columns = predicted; order: csf_like, saline_like,
-saliva_like, other):
+| Metric | v2 (6 classes) | v1 (4 classes) |
+|---|---|---|
+| Accuracy | **0.688** | 0.745 |
+| Macro precision | 0.671 | 0.737 |
+| Macro recall | 0.686 | 0.753 |
+| Macro F1 | 0.667 | 0.738 |
+| Expected Calibration Error | **0.054** | 0.098 |
+| Brier score | 0.068 | 0.091 |
+
+Accuracy dropped after adding tear-like and nasal-mucus-like, exactly as expected: tear-like
+was designed to overlap saline/CSF. Calibration *improved* — the confidences the app shows
+are closer to true probabilities than before.
+
+Confusion matrix (rows = true, columns = predicted):
 
 ```
-                csf_like  saline_like  saliva_like  other
-csf_like             5          4           0         0
-saline_like          5          9           0         0
-saliva_like          0          0           8         0
-other                1          0           2        13
+                   csf  saline  saliva  tear  nasal_mucus  other
+csf_like             4      4       0     1        0         0
+saline_like          5      4       0     5        0         0
+saliva_like          0      0       7     0        1         0
+tear_like            4      0       0    17        0         0
+nasal_mucus_like     0      0       1     0        7         0
+other                0      0       2     0        1        14
 ```
 
-**This confusion matrix is the result the dataset design was built to produce**: csf_like
-and saline_like are confused with each other almost evenly (5 of each misclassified as the
-other), while saliva_like and other are both classified perfectly or near-perfectly. That
-matches `docs/dataset.md`'s deliberately overlapping csf_like/saline_like parameter ranges,
-which in turn reflect the real literature finding that these two are not visually
-distinguishable. A model that could cleanly separate csf_like from saline_like on this
-dataset would indicate a bug in the generator's overlap, not a good model.
+Two clusters, as designed: the **clear fluids** (CSF / saline / tear) confuse with each
+other, and the **mucin-rich fluids** (saliva / nasal mucus) occasionally swap. Clear vs
+mucin-rich is almost never confused. A model that cleanly separated CSF from saline here
+would indicate a generator bug, not a good model.
 
-### `csf_like`-specific (spec section 17 — the class the medical-safety framing cares about most)
+Per-class ROC-AUC: csf 0.891, saline 0.802, saliva 0.984, tear 0.924, nasal mucus 0.989, other 0.996.
+Per-class PR-AUC: csf 0.382, saline 0.496, saliva 0.887, tear 0.818, nasal mucus 0.925, other 0.989.
 
-| Metric | Value |
-|---|---|
-| Sensitivity | 0.556 |
-| Specificity | 0.842 |
-| PPV | 0.455 |
-| NPV | 0.889 |
+### `csf_like`-specific (the class the medical-safety framing cares about most)
 
-Per-class ROC-AUC: csf_like 0.836, saline_like 0.890, saliva_like 0.971, other 0.966.
-Per-class PR-AUC: csf_like 0.414, saline_like 0.808, saliva_like 0.760, other 0.956.
-csf_like's lower PR-AUC/PPV is the expected consequence of its overlap with saline_like,
-not a defect to "fix" — see above.
+| Metric | v2 | v1 |
+|---|---|---|
+| Sensitivity | 0.444 | 0.556 |
+| Specificity | 0.868 | 0.842 |
+| PPV | 0.308 | 0.455 |
+| NPV | 0.922 | 0.889 |
 
-### Halo-detection gate check (synthetic `invalid`/no-halo class, n=8)
+Low CSF sensitivity is why every CSF-like or uncertain result in the app carries a
+"lab confirmation required" stamp — the image result must never be the last word.
 
-Correctly rejected (NO_HALO_DETECTED, never reaches the classifier): **5/8 (62.5%)**,
-up from an initial 50%. Investigated and partially fixed in this pass:
+### Live timing (embedded-system target: result within one minute)
+
+Measured against the running server on the development laptop: photo **7.8 s**,
+10-second video (8 frames sampled and analysed) **17.5 s**. A 45-second budget in
+`video_service.py` stops frame analysis early if a slow device would otherwise exceed it.
+
+### Halo-detection gate check (synthetic `invalid`/no-halo class)
+
+v2 test split: **3/4 (75%)** correctly rejected. Only 4 invalid samples landed in this
+split, so this number is noisy; the v1 split measured 5/8 (62.5%). History of the
+investigation:
 
 **Root cause #1 (fixed, generator-level):** `datasets/synthetic_generator.py`'s `invalid`
 class used to render `inner_radius = outer_radius * 0.92` — an intentional-but-wrong ~8%
