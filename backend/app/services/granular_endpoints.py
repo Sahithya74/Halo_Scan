@@ -10,13 +10,22 @@ from app.feature_engineering.feature_vector import build_feature_vector, feature
 from app.image_processing.halo_detection import detect_halo
 from app.image_processing.quality import assess_quality
 from app.image_processing.roi_detection import detect_sample_region
+from app.image_processing.sample_validation import NotASampleError, validate_sample
 from app.models.registry import registry
 from app.services.analysis_service import build_decision_support, load_image_from_bytes
 from app.spreading_analysis.spreading import compute_spreading_profile
 
 
-def detect_halo_only(image_bytes: bytes) -> dict:
+def _load_sample(image_bytes: bytes):
     image_bgr = load_image_from_bytes(image_bytes)
+    check = validate_sample(image_bgr)
+    if not check.ok:
+        raise NotASampleError(check.reason, check.metrics)
+    return image_bgr
+
+
+def detect_halo_only(image_bytes: bytes) -> dict:
+    image_bgr = _load_sample(image_bytes)
     roi = detect_sample_region(image_bgr)
     halo = detect_halo(image_bgr, roi)
     return {
@@ -33,7 +42,7 @@ def detect_halo_only(image_bytes: bytes) -> dict:
 
 
 def extract_features_only(image_bytes: bytes) -> dict:
-    image_bgr = load_image_from_bytes(image_bytes)
+    image_bgr = _load_sample(image_bytes)
     quality = assess_quality(image_bgr)
     if quality.status == "POOR":
         return {"status": "POOR_QUALITY", "reasons": quality.reasons, "features": {}}
@@ -47,7 +56,7 @@ def extract_features_only(image_bytes: bytes) -> dict:
 
 
 def classify_only(image_bytes: bytes) -> dict:
-    image_bgr = load_image_from_bytes(image_bytes)
+    image_bgr = _load_sample(image_bytes)
     quality = assess_quality(image_bgr)
     if quality.status == "POOR":
         return {"status": "POOR_QUALITY", "decision_support": build_decision_support("RECAPTURE_NEEDED", None, None).model_dump()}

@@ -21,8 +21,10 @@ import numpy as np
 from app.config import settings
 from app.feature_engineering.feature_vector import build_feature_vector, feature_dict_to_row
 from app.image_processing.halo_detection import HaloDetectionResult, detect_halo
+from app.image_processing.preprocessing import resize_max_dimension
 from app.image_processing.quality import QualityAssessment, assess_quality
 from app.image_processing.roi_detection import ROI, detect_sample_region
+from app.image_processing.sample_validation import NotASampleError, validate_sample
 from app.models.registry import PredictionOutcome, registry
 from app.schemas.analysis import (
     AnalysisResult,
@@ -85,13 +87,14 @@ class Aggregate:
 
 def load_image_from_bytes(data: bytes) -> np.ndarray:
     array = np.frombuffer(data, dtype=np.uint8)
-    image = cv2.imdecode(array, cv2.IMREAD_COLOR)
+    image = cv2.imdecode(array, cv2.IMREAD_COLOR)  # applies EXIF orientation
     if image is None:
         raise ValueError("Could not decode image — unsupported or corrupt file.")
-    return image
+    return resize_max_dimension(image, settings.max_analysis_dimension)[0]
 
 
 def analyze_frame(image_bgr: np.ndarray, manual_roi: ROI | None = None) -> FrameAnalysis:
+    image_bgr = resize_max_dimension(image_bgr, settings.max_analysis_dimension)[0]
     frame = FrameAnalysis(image_bgr=image_bgr, quality=assess_quality(image_bgr))
     if frame.quality.status == "POOR":
         return frame
@@ -239,7 +242,11 @@ def run_full_analysis(
     patient_code: str | None = None, performed_by: int | None = None,
 ) -> AnalysisResult:
     started = time.perf_counter()
-    frame = analyze_frame(load_image_from_bytes(image_bytes), manual_roi=manual_roi)
+    image = load_image_from_bytes(image_bytes)
+    check = validate_sample(image)
+    if not check.ok:
+        raise NotASampleError(check.reason, check.metrics)  # nothing analysed, nothing stored
+    frame = analyze_frame(image, manual_roi=manual_roi)
     result = assemble_result(frame, input_type="image", started=started, patient_code=patient_code)
     persist(result, patient_id, performed_by)
     return result
