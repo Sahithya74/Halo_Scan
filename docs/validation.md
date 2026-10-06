@@ -68,13 +68,29 @@ are now downscaled to 1280 px before analysis.
 
 `app/image_processing/sample_validation.py` now runs before any analysis and refuses the
 image with HTTP 422 (nothing analysed, nothing stored, an `analysis_rejected` audit entry
-with only the reason). Checks: face detected → pale neutral pad present → a darker,
-roughly round stain present → little edge detail around it.
+with only the reason). It requires **positive evidence of a fluid stain**, not just the
+absence of obvious non-samples:
+
+1. **No face** — YuNet DNN detector (OpenCV Zoo, hash-pinned) or the LBP cascade.
+2. **Pale, neutral pad** filling the image border.
+3. **A darker, roughly round stain** on it.
+4. **The stain looks like soaked-in fluid**: red-brown (blood + fluid), smooth interior, and a
+   soft rim from wicking. This is what separates a drop from a coin, sticker, bottle cap,
+   button, backlit head or face that is also "dark and round on white".
+5. **Little edge detail** around the stain.
 
 | Calibration set | Result |
 |---|---|
 | 1,114 halo images (556 dataset images, all 7 classes, + JPEG q60, 1600 px, ±20° rotation, dim + noise, warm indoor light, fibre texture variants) | **1,114 accepted (100%)** |
-| 110 non-sample images (22 natural photos incl. a portrait, cat, coffee, retina, clock, colour wheel, phantom, textures; + 3 crops and a phone-size copy of each) | **110 rejected (100%)**; the portrait is rejected specifically as a *face* |
+| 233 non-samples: 22 natural photos + 3 crops + a phone-size copy each; 9 stain look-alikes (black/red stickers, dark-red button, brown coin — sharp and slightly blurred — bottle cap, backlit head silhouette); 113 webcam-style selfies (close-up, tilted 15–45°, upper/lower/left half of the face, dim, blurred, noisy low-res webcam, and 100 low-resolution faces from LFW) | **233 refused (100%)** — 125 identified as a face |
+| The same 113 selfies with face detection **disabled** | **113 refused (100%)** by the pad/stain checks alone |
+
+Earlier version (LBP face cascade only) missed 5 of 11 hard selfie variants — faces tilted
+30–45° and half faces — which is exactly what hand-held webcam captures produce. YuNet found
+all 11 and made zero detections on 1,668 halo images. The gate costs ~0.4 s per image.
+
+**Known limitation:** the halo test is blood mixed with the test fluid, so a stain containing
+no blood at all (clear fluid only) is refused as `not_fluid_stain`.
 
 Caveat: the positives are synthetic. Real gauze photos are messier (weave texture, uneven
 light, table edges), so thresholds were set with wide margins on the sample side (e.g. pad

@@ -25,7 +25,9 @@ a label as a diagnosis. See `docs/architecture.md` for the full pipeline diagram
 
 Software-only (hardware — phone stand, ring light, sample pad — deferred).
 - **Backend** (`backend/`): FastAPI + OpenCV + scikit-learn. Photo **and 10-second video**
-  analysis, role-based access, encrypted patient data, tamper-evident audit log. 80/80 tests
+  analysis, role-based access, encrypted patient data, tamper-evident audit log. A **sample
+  gate** responds only to fluid-stain photos: faces, people, objects and unrelated scenes are
+  refused before analysis and never stored (see `docs/validation.md`). 80/80 tests
   pass; real metrics in `docs/validation.md`.
 - **Web app** (`web_app/`): served by the backend at the server root — one URL for the whole
   system. Role-based login (administrator / doctor·nurse / patient), live camera capture and
