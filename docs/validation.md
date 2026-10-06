@@ -58,6 +58,31 @@ Per-class PR-AUC: csf 0.382, saline 0.496, saliva 0.887, tear 0.818, nasal mucus
 Low CSF sensitivity is why every CSF-like or uncertain result in the app carries a
 "lab confirmation required" stamp — the image result must never be the last word.
 
+### Sample gate: refusing images that aren't halo samples
+
+**Problem found:** before this gate, any photo was analysed. A portrait came back
+"HALO DETECTED", classified "Other / atypical" at 84% confidence, and was stored in the
+patient's record (a cat and a coffee cup behaved the same). Separately, phone-size photos
+(4032×3024) produced ~14 MB responses because diagrams were drawn at full resolution; images
+are now downscaled to 1280 px before analysis.
+
+`app/image_processing/sample_validation.py` now runs before any analysis and refuses the
+image with HTTP 422 (nothing analysed, nothing stored, an `analysis_rejected` audit entry
+with only the reason). Checks: face detected → pale neutral pad present → a darker,
+roughly round stain present → little edge detail around it.
+
+| Calibration set | Result |
+|---|---|
+| 1,114 halo images (556 dataset images, all 7 classes, + JPEG q60, 1600 px, ±20° rotation, dim + noise, warm indoor light, fibre texture variants) | **1,114 accepted (100%)** |
+| 110 non-sample images (22 natural photos incl. a portrait, cat, coffee, retina, clock, colour wheel, phantom, textures; + 3 crops and a phone-size copy of each) | **110 rejected (100%)**; the portrait is rejected specifically as a *face* |
+
+Caveat: the positives are synthetic. Real gauze photos are messier (weave texture, uneven
+light, table edges), so thresholds were set with wide margins on the sample side (e.g. pad
+brightness ≥ 120 where samples measured ≥ 187; stain roundness ≥ 0.66 where samples measured
+≥ 0.94). They should be re-checked against the first batch of real sample photos; when a
+sample is refused, the server log records the measured check values (numbers only, no image)
+to make that recalibration possible.
+
 ### Live timing (embedded-system target: result within one minute)
 
 Measured against the running server on the development laptop: photo **7.8 s**,
