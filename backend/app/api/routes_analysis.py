@@ -1,10 +1,13 @@
 """Analysis endpoints. Doctors/nurses run analyses; patients can only read their own."""
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 
 from app.config import settings
+from app.image_processing.sample_validation import NotASampleError
 from app.models.registry import registry
 from app.schemas.analysis import AnalysisResult, HealthResponse, HistoryItem, ModelInfoResponse
 from app.security import audit
@@ -18,6 +21,7 @@ from app.services.video_service import VideoError, run_video_analysis
 
 router = APIRouter(prefix="/api", tags=["analysis"])
 staff_only = require_roles(*STAFF_ROLES)
+logger = logging.getLogger(__name__)
 
 _IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
@@ -31,7 +35,9 @@ def _base_type(content_type: str | None) -> str:
 async def _read_upload(file: UploadFile, allowed: set[str]) -> tuple[bytes, str]:
     ctype = _base_type(file.content_type)
     if ctype not in allowed:
-        raise HTTPException(status_code=415, detail=f"Unsupported content type: {file.content_type}")
+        raise HTTPException(status_code=415, detail=(
+            f"Unsupported file type ({file.content_type or 'unknown'}). Use a JPEG/PNG/WebP photo or an "
+            "MP4/WebM/MOV video. iPhone HEIC photos: set Camera > Formats > Most Compatible, or use the in-app camera."))
     data = await file.read(settings.max_upload_bytes + 1)
     if len(data) == 0:
         raise HTTPException(status_code=400, detail="Empty file.")
@@ -60,6 +66,13 @@ async def analyze(
             result = await run_in_threadpool(run_video_analysis, data, ctype, **kwargs)
         else:
             result = await run_in_threadpool(run_full_analysis, data, **kwargs)
+    except NotASampleError as e:
+        # Nothing about the image is stored — only that a rejection happened and why. The
+        # numeric check values are logged so the gate can be recalibrated on real photos.
+        logger.info("Sample rejected (%s): %s", e.reason, e.metrics)
+        audit.record("analysis_rejected", user_id=user.user_id, username=user.username, role=user.role,
+                     ip=client_ip(request), success=False, detail=f"patient:{patient_id} reason:{e.reason}")
+        raise HTTPException(status_code=422, detail={"code": "not_a_sample", "reason": e.reason, "message": str(e)})
     except (ValueError, VideoError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     audit.record("analysis_run", user_id=user.user_id, username=user.username, role=user.role,

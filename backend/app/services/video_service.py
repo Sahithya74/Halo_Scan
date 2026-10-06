@@ -9,11 +9,13 @@ from __future__ import annotations
 import os
 import tempfile
 import time
+from collections import Counter
 
 import cv2
 import numpy as np
 
 from app.config import settings
+from app.image_processing.sample_validation import NotASampleError, validate_sample
 from app.schemas.analysis import AnalysisResult, FrameResult, VideoSchema
 from app.services.analysis_service import Aggregate, FrameAnalysis, analyze_frame, assemble_result, persist
 from app.services.visualization_service import encode_jpeg, plot_frame_timeline
@@ -111,10 +113,17 @@ def run_video_analysis(
     sampled, duration, fps = _read_sampled_frames(data, content_type)
 
     analyzed: list[tuple[float, FrameAnalysis]] = []
+    rejected_reasons: list[str] = []
     for t, img in sampled:
         if time.perf_counter() - started > settings.analysis_time_budget_seconds:
             break
+        check = validate_sample(img)
+        if not check.ok:
+            rejected_reasons.append(check.reason)  # not analysed, not thumbnailed, not stored
+            continue
         analyzed.append((t, analyze_frame(img)))
+    if not analyzed or len(rejected_reasons) > len(sampled) / 2:
+        raise NotASampleError(Counter(rejected_reasons).most_common(1)[0][0] if rejected_reasons else "no_stain")
 
     usable = [f for _, f in analyzed if f.outcome is not None]
     # Best frame for the diagrams: highest quality among usable frames, else among all.

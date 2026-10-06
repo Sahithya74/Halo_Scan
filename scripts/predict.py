@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from app.models.registry import registry  # noqa: E402
+from app.image_processing.sample_validation import NotASampleError  # noqa: E402
 from app.services.analysis_service import run_full_analysis  # noqa: E402
 
 
@@ -35,7 +36,11 @@ def main() -> None:
               "Continuing with CV-only output (no classification).", file=sys.stderr)
 
     image_bytes = args.image_path.read_bytes()
-    result = run_full_analysis(image_bytes)
+    try:
+        result = run_full_analysis(image_bytes)
+    except NotASampleError as e:
+        print(f"Rejected — not a halo test sample ({e.reason}): {e}", file=sys.stderr)
+        sys.exit(2)
 
     result_dict = result.model_dump()
     overlay_b64 = None

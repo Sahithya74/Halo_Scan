@@ -263,6 +263,39 @@ function wireInteractions(root, r) {
   enableAll(root);
 }
 
+const REJECT_TITLES = {
+  face: 'This is a photo of a face',
+  no_sample_pad: 'No sample pad in this photo',
+  no_stain: 'No fluid stain found',
+  cluttered_scene: 'This looks like an unrelated photo',
+};
+
+/** Shown when the server refuses an image that isn't a halo test sample (HTTP 422). */
+export function renderRejection(container, detail) {
+  const title = REJECT_TITLES[detail.reason] || 'Not a halo test sample';
+  container.innerHTML = `
+    <section class="verdict bad" data-reveal>
+      <div class="kicker">Image rejected — not analysed</div>
+      <div class="big"><div class="label">${esc(title)}</div></div>
+      <div class="stamps">
+        <span class="stamp alert">${ICON.alert} NOT A HALO SAMPLE</span>
+        <span class="stamp">${ICON.shield} IMAGE NOT STORED</span>
+      </div>
+    </section>
+    <section class="card" data-reveal>
+      <div class="card-title">${ICON.image} Why it was rejected</div>
+      <p style="margin:0 0 14px;font-weight:600;">${esc(detail.message)}</p>
+      <div class="card-title" style="margin-top:6px;">${ICON.ring} How to photograph a halo sample</div>
+      <ol style="margin:0;padding-left:20px;line-height:1.8;">
+        <li>Place the absorbent pad or gauze with the fluid drop on a plain surface.</li>
+        <li>Centre the stain inside the on-screen circle and fill most of the frame with the pad.</li>
+        <li>Use even, diffuse light — no shadows or glare across the ring.</li>
+        <li>Hold the camera parallel to the pad, 15–25 cm away, and keep it steady.</li>
+      </ol>
+    </section>`;
+  enableAll(container);
+}
+
 /** audience: "clinician" | "patient" */
 export function renderResult(container, r, { audience = 'clinician' } = {}) {
   const c = r.classification;

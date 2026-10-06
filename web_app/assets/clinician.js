@@ -1,6 +1,6 @@
 import { api, closeModal, color, esc, fmtDate, initials, label, mountTopbar, openModal, requireUser, toast } from './api.js';
 import { enableAll } from './motion.js';
-import { renderResult } from './result-view.js';
+import { renderRejection, renderResult } from './result-view.js';
 
 const $ = (sel) => document.querySelector(sel);
 const RECORD_SECONDS = 10;
@@ -294,7 +294,13 @@ $('#analyze-btn').addEventListener('click', async () => {
     toast(c ? `${label(c.research_classification)} · ${(c.confidence * 100).toFixed(0)}% confidence` : result.status.replaceAll('_', ' '));
   } catch (err) {
     finish(false);
-    toast(err.detail || 'Analysis failed', 'error');
+    if (err.status === 422 && err.data?.code === 'not_a_sample') {
+      renderRejection($('#results'), err.data);
+      $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      toast('Rejected: not a halo test sample', 'error');
+    } else {
+      toast(err.detail || 'Analysis failed', 'error');
+    }
   } finally {
     state.busy = false;
     updateAnalyzeButton();

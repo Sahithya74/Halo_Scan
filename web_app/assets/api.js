@@ -8,7 +8,8 @@ export const color = (cls) => `var(--c-${cls in LABELS ? cls : 'other'})`;
 export const label = (cls) => LABELS[cls] || cls || '—';
 
 export class ApiError extends Error {
-  constructor(status, detail) { super(detail); this.status = status; this.detail = detail; }
+  /** `data` holds a structured detail object when the server sent one (e.g. not_a_sample). */
+  constructor(status, detail, data = null) { super(detail); this.status = status; this.detail = detail; this.data = data; }
 }
 
 function csrfToken() {
@@ -28,13 +29,16 @@ export async function api(path, { method = 'GET', json, form } = {}) {
   try { data = await resp.json(); } catch { /* empty body */ }
 
   if (!resp.ok) {
-    const detail = (data && (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail))) || resp.statusText;
+    const structured = data && data.detail && typeof data.detail === 'object' ? data.detail : null;
+    const detail = structured?.message
+      || (data && (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)))
+      || resp.statusText;
     if (resp.status === 401 && !path.startsWith('/api/auth/login')) {
       location.href = '/?expired=1';
     } else if (resp.status === 403 && detail === 'password_change_required') {
       location.href = '/?change=1';
     }
-    throw new ApiError(resp.status, detail);
+    throw new ApiError(resp.status, detail, structured);
   }
   return data;
 }

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes_admin import router as admin_router
@@ -14,6 +15,7 @@ from app.api.routes_auth import router as auth_router
 from app.api.routes_patients import router as patients_router
 from app.api.routes_research import router as research_router
 from app.config import settings
+from app.image_processing.sample_validation import NotASampleError
 from app.models.registry import registry
 from app.services.storage_service import encrypt_legacy_rows
 from app.utils.logging_config import configure_logging
@@ -62,6 +64,12 @@ _CSP = "; ".join([
 ])
 # Swagger/ReDoc pull their UI from a CDN, so they get the other headers but not the CSP.
 _DOCS_PATHS = ("/docs", "/redoc", "/openapi.json")
+
+
+@app.exception_handler(NotASampleError)
+async def not_a_sample_handler(request: Request, exc: NotASampleError) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": {
+        "code": "not_a_sample", "reason": exc.reason, "message": str(exc)}})
 
 
 @app.middleware("http")

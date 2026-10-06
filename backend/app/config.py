@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     cors_origins: tuple[str, ...] = ()
     min_password_length: int = 10
 
+    # Phone photos (e.g. 4032x3024) are downscaled to this longest side before analysis.
+    # Without it, diagrams were rendered at full resolution (14 MB responses) and analysis
+    # time grew with megapixels. 1280 keeps far more detail than the ring measurements need.
+    max_analysis_dimension: int = 1280
+
     # --- Video ---
     max_upload_bytes: int = 25 * 1024 * 1024
     max_video_seconds: float = 15.0
