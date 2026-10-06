@@ -40,6 +40,64 @@ def test_face_is_rejected_as_face():
     assert check.reason == "face"
 
 
+_WALL = (232, 234, 236)
+
+
+def _on_wall(img: np.ndarray, scale: float) -> np.ndarray:
+    canvas = np.full((960, 1280, 3), _WALL, np.uint8)
+    f = cv2.resize(img, None, fx=scale, fy=scale)[:960, :1280]
+    y, x = (960 - f.shape[0]) // 2, (1280 - f.shape[1]) // 2
+    canvas[y:y + f.shape[0], x:x + f.shape[1]] = f
+    return canvas
+
+
+def _selfie_variants() -> dict:
+    face = _bgr(data.astronaut())[20:230, 150:330]
+    tilt = lambda d: cv2.warpAffine(_on_wall(face, 2.5), cv2.getRotationMatrix2D((640, 480), d, 1), (1280, 960),
+                                    borderValue=_WALL)
+    return {
+        "close-up on wall": _on_wall(face, 3.9), "tilted 30": tilt(30), "tilted 45": tilt(45),
+        "upper half of face": _on_wall(face[:125], 3.5), "lower half of face": _on_wall(face[85:], 3.5),
+        "dim": (_on_wall(face, 2.5) * 0.4).astype(np.uint8),
+    }
+
+
+@pytest.mark.parametrize("variant", list(_selfie_variants()))
+def test_webcam_style_selfies_rejected_as_face(variant):
+    """Hand-held webcam selfies: tilted, partial, close-up or dim faces against a plain wall."""
+    check = validate_sample(_selfie_variants()[variant])
+    assert not check.ok and check.reason == "face", (variant, check.reason, check.metrics)
+
+
+@pytest.mark.parametrize("variant", list(_selfie_variants()))
+def test_selfies_rejected_even_if_face_detector_misses(variant, monkeypatch):
+    """Second line of defence: the fluid-stain checks alone must refuse a selfie."""
+    import app.image_processing.sample_validation as sv
+    monkeypatch.setattr(sv, "_count_faces", lambda img: 0)
+    assert not sv.validate_sample(_selfie_variants()[variant]).ok
+
+
+def _disc(color, blur=0, size=150):
+    c = np.full((960, 1280, 3), _WALL, np.uint8)
+    cv2.circle(c, (640, 480), size, color, -1, cv2.LINE_AA)
+    return cv2.GaussianBlur(c, (blur, blur), 0) if blur else c
+
+
+@pytest.mark.parametrize("name,img", [
+    ("black sticker", _disc((25, 25, 25))),
+    ("red sticker", _disc((40, 40, 200))),
+    ("red sticker, slightly blurry", _disc((40, 40, 200), blur=9)),
+    ("brown coin", _disc((40, 70, 110))),
+    ("backlit head silhouette", cv2.GaussianBlur(cv2.ellipse(np.full((960, 1280, 3), 245, np.uint8), (640, 520),
+                                                             (230, 300), 0, 0, 360, (30, 30, 35), -1), (15, 15), 0)),
+])
+def test_stain_lookalikes_rejected(name, img):
+    """Round dark objects on a white surface look like a stain to simple checks; their sharp
+    outline / neutral colour shows they aren't soaked-in fluid."""
+    check = validate_sample(img)
+    assert not check.ok and check.reason == "not_fluid_stain", (name, check.reason, check.metrics)
+
+
 @pytest.mark.parametrize("name", ["chelsea", "coffee", "rocket", "camera", "brick", "colorwheel", "retina", "clock"])
 def test_unrelated_photos_rejected(name):
     check = validate_sample(_bgr(getattr(data, name)()))

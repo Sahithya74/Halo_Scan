@@ -267,6 +267,7 @@ const REJECT_TITLES = {
   face: 'This is a photo of a face',
   no_sample_pad: 'No sample pad in this photo',
   no_stain: 'No fluid stain found',
+  not_fluid_stain: 'This is not a fluid stain',
   cluttered_scene: 'This looks like an unrelated photo',
 };
 

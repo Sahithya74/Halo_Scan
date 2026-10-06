@@ -1,16 +1,16 @@
 import io
-
-import cv2
-import numpy as np
+from pathlib import Path
 
 from app.services import storage_service
 
 
+_SAMPLE = Path(__file__).resolve().parent.parent / "datasets/synthetic/samples/csf_like_example.png"
+
+
 def _png() -> bytes:
-    image = np.full((400, 400, 3), 245, dtype=np.uint8)
-    cv2.circle(image, (200, 200), 110, (150, 150, 130), -1)
-    cv2.circle(image, (200, 200), 55, (28, 32, 118), -1)
-    return cv2.imencode(".png", cv2.GaussianBlur(image, (5, 5), 0))[1].tobytes()
+    # A real reference sample: hand-drawn hard-edged grey circles are (correctly) refused by
+    # the sample gate as a solid object rather than a soaked-in fluid stain.
+    return _SAMPLE.read_bytes()
 
 
 def test_admin_can_create_staff_and_gets_temp_password(client_for):
