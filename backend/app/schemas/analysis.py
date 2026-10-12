@@ -35,6 +35,12 @@ class SpreadingSchema(BaseModel):
 
 
 class ClassificationSchema(BaseModel):
+    # Level 1 (headline): fluid family — clear_fluid | mucus_rich | other
+    fluid_family: str
+    family_confidence: float
+    family_probabilities: dict[str, float]
+    family_uncertain: bool
+    # Level 2 (detail): exact fluid class — weak within the clear-fluid family by nature
     research_classification: str
     confidence: float
     class_probabilities: dict[str, float]
@@ -94,13 +100,18 @@ class VideoSchema(BaseModel):
 
 class ModelCardSchema(BaseModel):
     model_version: str
-    test_accuracy: float | None = None
+    family_accuracy: float | None = None
+    family_macro_f1: float | None = None
+    per_family_sensitivity: dict[str, float] = Field(default_factory=dict)
+    clear_fluid_sensitivity: float | None = None
+    test_accuracy: float | None = None  # exact-fluid (6-class) accuracy
     macro_f1: float | None = None
     per_class_sensitivity: dict[str, float] = Field(default_factory=dict)
     n_test_samples: int | None = None
     trained_on: str | None = None
     note: str = ("Accuracy measured on held-out SYNTHETIC test images, not on real patients. "
-                 "No image-based method can reach 100% for this task.")
+                 "The fluid family is reliable; the exact fluid within the clear-fluid family "
+                 "(CSF vs saline vs tear) cannot be determined from a photo.")
 
 
 class DecisionSupportSchema(BaseModel):
@@ -142,6 +153,7 @@ class HistoryItem(BaseModel):
     uncertain: bool | None
     patient_id: int | None = None
     input_type: str = "image"
+    fluid_family: str | None = None
 
 
 class HealthResponse(BaseModel):

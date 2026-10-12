@@ -25,6 +25,7 @@ from app.image_processing.preprocessing import resize_max_dimension
 from app.image_processing.quality import QualityAssessment, assess_quality
 from app.image_processing.roi_detection import ROI, detect_sample_region
 from app.image_processing.sample_validation import NotASampleError, validate_sample
+from app.models.families import FAMILY_MIN_CONFIDENCE, family_probabilities
 from app.models.registry import PredictionOutcome, registry
 from app.schemas.analysis import (
     AnalysisResult,
@@ -196,7 +197,13 @@ def assemble_result(
                 uncertain=o.uncertainty.is_uncertain,
             )
         label, uncertain = aggregate.label, aggregate.uncertain
+        fam_probs = family_probabilities(aggregate.class_probabilities)
+        fam_label = max(fam_probs, key=fam_probs.get)
+        fam_confidence = fam_probs[fam_label]
         classification = ClassificationSchema(
+            fluid_family=fam_label, family_confidence=round(fam_confidence, 4),
+            family_probabilities={k: round(v, 4) for k, v in fam_probs.items()},
+            family_uncertain=fam_confidence < FAMILY_MIN_CONFIDENCE,
             research_classification=label, confidence=round(aggregate.confidence, 4),
             class_probabilities={k: round(v, 4) for k, v in aggregate.class_probabilities.items()},
             uncertain=uncertain, disagreement=round(aggregate.disagreement, 4),
