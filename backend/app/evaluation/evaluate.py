@@ -77,6 +77,36 @@ def csf_like_binary_metrics(y_true_idx: np.ndarray, y_pred_idx: np.ndarray, clas
     }
 
 
+def family_metrics(y_true_idx: np.ndarray, proba: np.ndarray, classes: list[str]) -> dict:
+    """Metrics at the fluid-family level (clear fluid / mucus-rich / other), using family
+    probabilities = sums of the calibrated class probabilities."""
+    from app.models.families import FAMILY_MIN_CONFIDENCE, family_index_map
+
+    names, fam_of = family_index_map(classes)
+    fam_proba = np.zeros((proba.shape[0], len(names)))
+    for ci, fi in enumerate(fam_of):
+        fam_proba[:, fi] += proba[:, ci]
+    y_true = np.array([fam_of[i] for i in y_true_idx])
+    y_pred = fam_proba.argmax(axis=1)
+    base = classification_metrics(y_true, y_pred, names)
+
+    clear = names.index("clear_fluid")
+    t, p = y_true == clear, y_pred == clear
+    tp, tn, fp, fn = int(np.sum(t & p)), int(np.sum(~t & ~p)), int(np.sum(~t & p)), int(np.sum(t & ~p))
+    confident = fam_proba.max(axis=1) >= FAMILY_MIN_CONFIDENCE
+    return {
+        **base,
+        "per_family_sensitivity": {
+            n: round(float(np.mean(y_pred[y_true == i] == i)), 4) for i, n in enumerate(names) if np.any(y_true == i)
+        },
+        "clear_fluid_sensitivity": round(tp / (tp + fn), 4) if tp + fn else None,
+        "clear_fluid_specificity": round(tn / (tn + fp), 4) if tn + fp else None,
+        "confident_fraction": round(float(confident.mean()), 4),
+        "accuracy_when_confident": round(float(np.mean(y_pred[confident] == y_true[confident])), 4) if confident.any() else None,
+        "calibration": calibration_report(fam_proba, y_true, len(names)),
+    }
+
+
 def full_evaluation_report(
     y_true_idx: np.ndarray, y_pred_idx: np.ndarray, proba: np.ndarray, classes: list[str],
 ) -> dict:
@@ -85,5 +115,6 @@ def full_evaluation_report(
     report.update(roc_pr_auc(y_true_idx, proba, classes))
     report.update(csf_like_binary_metrics(y_true_idx, y_pred_idx, classes))
     report["calibration"] = calibration_report(proba, y_true_idx, len(classes))
+    report["family"] = family_metrics(y_true_idx, proba, classes)
     report["disclaimer"] = "All metrics computed on SYNTHETIC/DEMO data. Not a clinical validation study."
     return report
