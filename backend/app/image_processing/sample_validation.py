@@ -224,10 +224,15 @@ def validate_sample(image_bgr: np.ndarray) -> SampleCheck:
         return SampleCheck(False, "not_fluid_stain", m)
 
     # Edge detail outside the stain, leaving room for the halo ring itself (outer ring radius
-    # can reach ~1.9x the stain radius when the stain blob is only the inner core).
+    # can reach ~1.9x the stain radius when the stain blob is only the inner core). The outermost
+    # border strip is excluded: a photo/scan frame or crop edge produces a hard line right at the
+    # image boundary that isn't scene clutter, unlike real background objects which spread edges
+    # through the interior of the "outside" ring.
     yy, xx = np.ogrid[:h, :w]
     cx, cy = blob["center"]
-    outside = np.hypot(xx - cx, yy - cy) > blob["radius"] * 2.2
+    b = max(4, int(0.06 * min(h, w)))
+    not_border = (yy >= b) & (yy < h - b) & (xx >= b) & (xx < w - b)
+    outside = (np.hypot(xx - cx, yy - cy) > blob["radius"] * 2.2) & not_border
     edges = cv2.Canny(cv2.GaussianBlur(gray, (5, 5), 0), 60, 150) > 0
     m["edge_density_outside"] = round(float(edges[outside].mean()) if outside.any() else 0.0, 4)
     if m["edge_density_outside"] > MAX_EDGE_DENSITY_OUTSIDE:
