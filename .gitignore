@@ -34,3 +34,6 @@ Thumbs.db
 
 # Encryption keys, TLS certs
 backend/secrets/
+
+# Built Android app (rebuild with android_app/gradlew assembleDebug)
+*.apk
