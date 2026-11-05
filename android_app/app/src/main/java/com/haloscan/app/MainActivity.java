@@ -51,6 +51,7 @@ public class MainActivity extends Activity {
     private static final int REQ_CAMERA_FOR_CAPTURE = 10;
     private static final int REQ_CAMERA_FOR_PAGE = 11;
     private static final int VIDEO_SECONDS = 10;
+    private static final long MAX_VIDEO_BYTES = 24L * 1024 * 1024;
 
     private String serverUrl;
     private WebView web;
@@ -87,6 +88,7 @@ public class MainActivity extends Activity {
         Captures.clear(this);
         configureWebView();
 
+        if (savedInstanceState == null) web.clearCache(true);  // always start from the server's current web app
         if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) loadApp();
         updateBackHandling();
     }
@@ -233,7 +235,12 @@ public class MainActivity extends Activity {
                 deliverFiles(null);  // a chooser that was still open is cancelled
                 fileCallback = callback;
                 chooserParams = params;
-                showSampleChooser(params);
+                boolean images = accepts(params, "image/"), videos = accepts(params, "video/");
+                if (params.isCaptureEnabled() && images != videos) {
+                    startCapture(images ? REQ_PHOTO : REQ_VIDEO);  // page's camera button: straight to the camera
+                } else {
+                    showSampleChooser(params);
+                }
                 return true;
             }
 
@@ -320,6 +327,7 @@ public class MainActivity extends Activity {
         if (!photo) {
             intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, VIDEO_SECONDS);
             intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
+            intent.putExtra(MediaStore.EXTRA_SIZE_LIMIT, MAX_VIDEO_BYTES);  // server accepts up to 25 MB
         }
         try {
             startActivityForResult(intent, kind);
