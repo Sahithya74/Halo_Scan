@@ -34,6 +34,11 @@ Software-only (hardware — phone stand, ring light, sample pad — deferred).
   10-second recording, and a bold result report with measurement diagram, chances of each
   fluid (CSF / saline / saliva / tear / nasal mucus / other), comparison radar, video frame
   timeline and printable report.
+- **Android app** (`android_app/`): a built, installable APK that shows the web app
+  full-screen and adds phone-camera capture (photo or 10-second video), Android printing and
+  a server-connection screen. The phone connects to the server over Wi-Fi; analysis still
+  runs on the computer. Lint-clean, not yet tested on a physical phone. See
+  `android_app/README.md`.
 - **Flutter app** (`flutter_app/`): written as real Dart code but **unverified** — no
   Flutter SDK on the dev machine, and not yet updated for login. See `flutter_app/README.md`.
 - **Database**: SQLite, file-based, created automatically (`backend/analysis_history.db`) —
@@ -63,7 +68,9 @@ this pass — the MVP only assumes a smartphone camera and controlled lighting.
 - **Web app**: static HTML/CSS/JS modules (`web_app/`), no build step, served by the backend
   itself. Pointer-driven motion (3D tilt, magnetic buttons, animated halo rings), disabled
   automatically for users who prefer reduced motion.
-- **Mobile**: Flutter/Dart (unverified scaffold). See `flutter_app/README.md`.
+- **Android**: Java + Android WebView (`android_app/`), Gradle 9.8 / Android Gradle Plugin
+  9.5, Android 8.0+. See `android_app/README.md`.
+- **Mobile (Flutter)**: Flutter/Dart (unverified scaffold). See `flutter_app/README.md`.
 
 ## Architecture
 
@@ -88,6 +95,11 @@ Mahalanobis out-of-distribution detection and SHAP explainability. See `docs/alg
 ## API
 
 See `docs/api.md`.
+
+## Android app
+
+See `android_app/README.md` for installing the APK, connecting a phone to the server, and
+building it.
 
 ## Flutter app
 
