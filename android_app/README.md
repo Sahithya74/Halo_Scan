@@ -24,8 +24,9 @@ The analysis itself still runs on the computer: the phone is a client of the Hal
 3. Connect the phone to the **same Wi-Fi**, install the APK, open Halo Scan and enter
    `http://<that address>:8001`, e.g. `http://192.168.1.20:8001`.
 
-The live camera preview inside the page needs HTTPS, so over plain Wi-Fi use **Upload → Take a
-photo** (or record a video) instead; the page says so too.
+The live camera preview inside the page needs HTTPS, so over plain Wi-Fi **Start camera** opens
+the phone's own camera instead: a photo in the *Photo* tab, a 10-second recording in the *Video*
+tab. The result goes straight back into the page, ready to analyse.
 
 ## Building
 
