@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same palette as web_app/assets/app.css. -->
+    <color name="brand">#1F8A8A</color>
+    <color name="brand_dark">#12575A</color>
+    <color name="brand_soft">#D6EEEC</color>
+    <color name="surface">#F3F1EC</color>
+    <color name="card">#FFFFFF</color>
+    <color name="line">#E2DFD7</color>
+    <color name="ink">#0F1D24</color>
+    <color name="ink_muted">#5B6570</color>
+    <color name="danger">#C0392B</color>
+</resources>

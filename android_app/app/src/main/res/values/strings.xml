@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Halo Scan</string>
+    <string name="setup_title">Connect to Halo Scan</string>
+    <string name="setup_body">Halo Scan analyses samples on a computer running the Halo Scan server. Connect this phone to the same Wi-Fi as that computer, then enter the address shown when the server starts.</string>
+    <string name="setup_hint">http://192.168.1.20:8001</string>
+    <string name="setup_connect">Connect</string>
+    <string name="setup_checking">Checking the server…</string>
+    <string name="setup_bad_url">Enter an address like http://192.168.1.20:8001</string>
+    <string name="setup_unreachable">Can\'t reach a Halo Scan server at that address. Check that the computer is on, the server is running, and this phone is on the same Wi-Fi.</string>
+    <string name="error_title">Can\'t reach the Halo Scan server</string>
+    <string name="error_body">Check that the computer is on, the server is running, and this phone is on the same Wi-Fi as the computer.</string>
+    <string name="error_retry">Try again</string>
+    <string name="error_change_server">Change server address</string>
+    <string name="chooser_title">Add a sample</string>
+    <string name="chooser_photo">Take a photo</string>
+    <string name="chooser_video">Record a 10-second video</string>
+    <string name="chooser_file">Choose an existing file</string>
+    <string name="camera_denied">Camera permission is needed to take sample photos.</string>
+    <string name="no_camera_app">No camera app found on this phone.</string>
+    <string name="print_job">Halo Scan report</string>
+</resources>
