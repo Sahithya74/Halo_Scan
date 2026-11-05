@@ -78,3 +78,12 @@ def test_security_headers_present(anon_client):
     assert resp.headers["X-Content-Type-Options"] == "nosniff"
     assert "default-src 'self'" in resp.headers["Content-Security-Policy"]
     assert resp.headers["Cache-Control"] == "no-store"
+
+
+def test_web_app_files_are_revalidated(anon_client):
+    """Pages and scripts must be re-checked on every load, or an updated web app can keep
+    running from the browser/Android WebView cache for days."""
+    for path in ("/", "/clinician.html", "/assets/clinician.js"):
+        resp = anon_client.get(path)
+        assert resp.status_code == 200, path
+        assert resp.headers["Cache-Control"] == "no-cache", path

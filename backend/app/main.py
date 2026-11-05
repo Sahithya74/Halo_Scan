@@ -85,6 +85,11 @@ async def security_headers(request: Request, call_next):
         h["Content-Security-Policy"] = _CSP
     if request.url.path.startswith("/api/"):
         h["Cache-Control"] = "no-store"
+    elif "Cache-Control" not in h:
+        # Web app files: revalidate on every load (cheap 304s via ETag). Without this, browsers
+        # and the Android WebView guess a freshness lifetime from Last-Modified and can keep
+        # running an outdated page for days after an update.
+        h["Cache-Control"] = "no-cache"
     if settings.cookie_secure:
         h["Strict-Transport-Security"] = "max-age=31536000"
     return response
