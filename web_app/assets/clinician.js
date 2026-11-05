@@ -138,9 +138,17 @@ function updateAnalyzeButton() {
   btn.textContent = !state.patient ? 'Select a patient first' : !state.captured ? 'Capture a sample first' : `Analyse ${state.captured.kind}`;
 }
 
+/** The live in-page camera needs HTTPS or localhost. Over plain http (e.g. the Android app on
+ *  Wi-Fi) open the device's own camera instead: photo in Photo mode, a recording in Video mode. */
+function openDeviceCamera() {
+  const input = $('#capture-input');
+  input.accept = state.mode === 'video' ? 'video/mp4,video/webm,video/quicktime' : 'image/jpeg,image/png,image/webp';
+  input.click();
+}
+
 async function startCamera() {
   if (!navigator.mediaDevices?.getUserMedia) {
-    toast('Camera needs HTTPS or localhost. Use Upload instead.', 'error');
+    openDeviceCamera();
     return;
   }
   try {
@@ -225,10 +233,11 @@ function recordVideo() {
 $('#cam-btn').addEventListener('click', () => (state.stream ? stopCamera() : startCamera()));
 $('#shoot-btn').addEventListener('click', () => (state.mode === 'video' ? recordVideo() : capturePhoto()));
 $('#choose-btn').addEventListener('click', () => $('#file-input').click());
-$('#file-input').addEventListener('change', (e) => {
+['#file-input', '#capture-input'].forEach((id) => $(id).addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file) setCaptured(file, file.type.startsWith('video/') ? 'video' : 'photo', file.name);
-});
+  e.target.value = '';  // picking the same file again still fires 'change'
+}));
 
 document.querySelectorAll('#mode-tabs button').forEach((btn) => btn.addEventListener('click', () => {
   if (state.recorder) return;
