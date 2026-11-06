@@ -17,12 +17,15 @@ function csrfToken() {
   return m ? decodeURIComponent(m[1]) : '';
 }
 
-export async function api(path, { method = 'GET', json, form } = {}) {
+/** `background: true` marks automatic live-update polling: the server answers normally but does
+ *  not count it as user activity, so an unattended screen still signs out after the idle timeout. */
+export async function api(path, { method = 'GET', json, form, background = false } = {}) {
   const headers = {};
   let body;
   if (json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(json); }
   if (form) body = form;
   if (method !== 'GET') headers['X-CSRF-Token'] = csrfToken();
+  if (background) headers['X-Halo-Background'] = '1';
 
   const resp = await fetch(path, { method, headers, body, credentials: 'same-origin' });
   let data = null;
@@ -85,6 +88,51 @@ export function mountTopbar(me) {
   document.querySelector('[data-logout]').addEventListener('click', async () => {
     try { await api('/api/auth/logout', { method: 'POST' }); } finally { location.href = '/'; }
   });
+}
+
+/* ---------- live updates ---------- */
+
+function setLiveStatus(online) {
+  let badge = document.querySelector('.live-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'live-badge';
+    document.querySelector('.topbar .user-chip')?.before(badge);
+  }
+  badge.classList.toggle('offline', !online);
+  badge.title = online ? 'This page updates automatically' : "Can't reach the server — retrying";
+  badge.innerHTML = `<span class="live-dot"></span><span class="live-text">${online ? 'Live' : 'Reconnecting…'}</span>`;
+}
+
+/**
+ * Calls `refresh` every `ms` while the page is visible, and pauses while it is hidden (screen
+ * off, app in the background) — catching up immediately when it is shown again. `refresh`
+ * should use `api(..., { background: true })`. Shows a Live / Reconnecting badge in the top bar.
+ */
+export function live(refresh, ms) {
+  let timer = null;
+  let running = false;
+  const tick = async () => {
+    if (running || document.hidden) return;
+    running = true;
+    try {
+      await refresh();
+      setLiveStatus(true);
+    } catch (err) {
+      if (!(err instanceof ApiError)) setLiveStatus(false);  // network down; API errors are the page's to handle
+    } finally {
+      running = false;
+    }
+  };
+  const start = () => { timer ??= setInterval(tick, ms); };
+  const stop = () => { clearInterval(timer); timer = null; };
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stop();
+    else { tick(); start(); }
+  });
+  setLiveStatus(true);
+  start();
+  return { refreshNow: tick };
 }
 
 export function openModal(id) { document.getElementById(id).classList.add('open'); }
