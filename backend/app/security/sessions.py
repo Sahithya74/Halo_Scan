@@ -44,7 +44,9 @@ def create_session(user_id: int, ip: str | None, user_agent: str | None) -> tupl
     return token, csrf
 
 
-def get_session(token: str | None) -> SessionInfo | None:
+def get_session(token: str | None, *, touch: bool = True) -> SessionInfo | None:
+    """The live session for `token`, or None. `touch=False` (automatic live-update polling)
+    checks the session without extending its idle timeout."""
     if not token:
         return None
     token_hash = _hash(token)
@@ -62,7 +64,8 @@ def get_session(token: str | None) -> SessionInfo | None:
         if not row["active"] or now > parse_iso(row["expires_at"]) or now > idle_limit:
             conn.execute("DELETE FROM sessions WHERE token_hash = ?", (token_hash,))
             return None
-        conn.execute("UPDATE sessions SET last_seen = ? WHERE token_hash = ?", (iso(now), token_hash))
+        if touch:
+            conn.execute("UPDATE sessions SET last_seen = ? WHERE token_hash = ?", (iso(now), token_hash))
     return SessionInfo(
         token_hash=token_hash, user_id=row["user_id"], username=row["username"], role=row["role"],
         patient_id=row["patient_id"], must_change_password=bool(row["must_change_password"]),

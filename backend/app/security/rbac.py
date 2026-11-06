@@ -18,6 +18,9 @@ from app.security.sessions import SessionInfo, get_session
 SESSION_COOKIE = "halo_session"
 CSRF_COOKIE = "halo_csrf"
 CSRF_HEADER = "X-CSRF-Token"
+# Sent by the web app's automatic live-update polling. Such GET requests are served normally but
+# do not count as user activity, so an unattended screen still hits the idle timeout.
+BACKGROUND_HEADER = "X-Halo-Background"
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 STAFF_ROLES = ("doctor", "nurse")
@@ -28,7 +31,8 @@ def client_ip(request: Request) -> str | None:
 
 
 def _authenticated(request: Request) -> SessionInfo:
-    session = get_session(request.cookies.get(SESSION_COOKIE))
+    background = request.method == "GET" and request.headers.get(BACKGROUND_HEADER) == "1"
+    session = get_session(request.cookies.get(SESSION_COOKIE), touch=not background)
     if session is None:
         raise HTTPException(status_code=401, detail="Not signed in or session expired.")
     if request.method in _UNSAFE_METHODS:

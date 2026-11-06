@@ -69,6 +69,42 @@ def test_idle_session_expires(client_for):
     assert c.get("/api/auth/me").status_code == 401
 
 
+BACKGROUND = {"X-Halo-Background": "1"}
+
+
+def _age_all_sessions(minutes: float) -> str:
+    stamp = iso(utcnow() - _dt.timedelta(minutes=minutes))
+    with connect() as conn:
+        conn.execute("UPDATE sessions SET last_seen = ?", (stamp,))
+    return stamp
+
+
+def _last_seen_values() -> set[str]:
+    with connect() as conn:
+        return {row[0] for row in conn.execute("SELECT last_seen FROM sessions")}
+
+
+def test_background_polling_does_not_extend_idle_timeout(client_for):
+    """Live-update polling must not keep an unattended screen signed in forever."""
+    c = client_for("doctor")
+    stamp = _age_all_sessions(settings.session_idle_minutes - 1)
+    assert c.get("/api/auth/me", headers=BACKGROUND).status_code == 200
+    assert _last_seen_values() == {stamp}
+
+
+def test_user_request_extends_idle_timeout(client_for):
+    c = client_for("doctor")
+    stamp = _age_all_sessions(settings.session_idle_minutes - 1)
+    assert c.get("/api/auth/me").status_code == 200
+    assert _last_seen_values() != {stamp}
+
+
+def test_background_polling_still_hits_idle_expiry(client_for):
+    c = client_for("doctor")
+    _age_all_sessions(settings.session_idle_minutes + 1)
+    assert c.get("/api/auth/me", headers=BACKGROUND).status_code == 401
+
+
 def test_forced_password_change_blocks_other_endpoints(anon_client, make_user):
     _, username, password = make_user("doctor", must_change=True)
     login(anon_client, username, password)
