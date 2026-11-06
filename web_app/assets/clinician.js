@@ -1,4 +1,4 @@
-import { api, closeModal, color, esc, fmtDate, initials, label, mountTopbar, openModal, requireUser, toast } from './api.js';
+import { api, closeModal, color, esc, fmtDate, initials, label, live, mountTopbar, openModal, requireUser, toast } from './api.js';
 import { enableAll } from './motion.js';
 import { renderRejection, renderResult } from './result-view.js';
 
@@ -50,9 +50,14 @@ async function selectPatient(p) {
   await loadPatientHistory();
 }
 
-async function loadPatientHistory() {
+let historyShown = '';
+async function loadPatientHistory({ background = false } = {}) {
+  if (!state.patient) return;
   const box = $('#patient-history');
-  const items = await api(`/api/patients/${state.patient.id}/analyses`);
+  const items = await api(`/api/patients/${state.patient.id}/analyses`, { background });
+  const sig = `${state.patient.id}:${items.map((a) => a.analysis_id).join(',')}`;
+  if (background && sig === historyShown) return;
+  historyShown = sig;
   if (!items.length) { box.innerHTML = '<div class="tiny muted">No analyses yet for this patient.</div>'; return; }
   box.innerHTML = items.slice(0, 8).map((a) => `
     <div class="patient-item" data-analysis="${esc(a.analysis_id)}" style="padding:8px;">
@@ -319,3 +324,6 @@ $('#analyze-btn').addEventListener('click', async () => {
 window.addEventListener('pagehide', stopCamera);
 loadPatients();
 updateAnalyzeButton();
+
+// Results added for the selected patient from any device appear here within ~8 s.
+live(() => loadPatientHistory({ background: true }), 8000);
