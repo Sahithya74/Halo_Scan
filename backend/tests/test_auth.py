@@ -44,6 +44,16 @@ def test_wrong_portal_rejected(anon_client, make_user):
     _, username, password = make_user("patient")
     resp = anon_client.post("/api/auth/login", json={"username": username, "password": password, "portal": "staff"})
     assert resp.status_code == 403
+    detail = resp.json()["detail"]
+    assert detail["code"] == "wrong_portal" and detail["portal"] == "patient"
+    assert "halo_session" not in resp.cookies  # no session is created on the wrong portal
+
+
+def test_wrong_password_on_wrong_portal_does_not_reveal_portal(anon_client, make_user):
+    _, username, _ = make_user("patient")
+    resp = anon_client.post("/api/auth/login", json={"username": username, "password": "Wrong-pass-123", "portal": "staff"})
+    assert resp.status_code == 401
+    assert "portal" not in resp.text
 
 
 def test_logout_revokes_session(client_for):

@@ -11,10 +11,14 @@ let portal = 'staff';
 const $ = (sel) => document.querySelector(sel);
 const showError = (id, msg) => { const el = $(id); el.textContent = msg; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); };
 
-document.querySelectorAll('.portal').forEach((btn) => btn.addEventListener('click', () => {
-  document.querySelectorAll('.portal').forEach((b) => b.classList.toggle('active', b === btn));
-  portal = btn.dataset.portal;
+function selectPortal(name) {
+  document.querySelectorAll('.portal').forEach((b) => b.classList.toggle('active', b.dataset.portal === name));
+  portal = name;
   $('#portal-hint').textContent = HINTS[portal];
+}
+
+document.querySelectorAll('.portal').forEach((btn) => btn.addEventListener('click', () => {
+  selectPortal(btn.dataset.portal);
   $('#login-form [name=username]').focus();
 }));
 
@@ -48,6 +52,8 @@ $('#login-form').addEventListener('submit', async (e) => {
       location.href = HOME_FOR_ROLE[me.role];
     }
   } catch (err) {
+    // Right password, wrong tab: switch to the account's own tab; the typed details stay filled in.
+    if (err.data?.code === 'wrong_portal' && HINTS[err.data.portal]) selectPortal(err.data.portal);
     showError('#login-error', err.detail || 'Sign-in failed.');
   } finally {
     btn.disabled = false;

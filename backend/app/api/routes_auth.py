@@ -18,6 +18,7 @@ from app.services import accounts_service, auth_service
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 PORTAL_ROLES = {"admin": {"admin"}, "staff": {"doctor", "nurse"}, "patient": {"patient"}}
+PORTAL_LABELS = {"admin": "Administrator", "staff": "Doctor / Nurse", "patient": "Patient"}
 
 
 class LoginRequest(BaseModel):
@@ -68,7 +69,14 @@ def login(body: LoginRequest, request: Request, response: Response) -> dict:
     if body.portal and body.portal in PORTAL_ROLES and user["role"] not in PORTAL_ROLES[body.portal]:
         audit.record("login_wrong_portal", user_id=user["id"], username=user["username"], role=user["role"],
                      ip=ip, success=False, detail=body.portal)
-        raise HTTPException(status_code=403, detail="This account cannot sign in through this portal.")
+        # The password was already verified, so naming the account's own portal reveals nothing
+        # to someone who doesn't know it; the sign-in page uses it to switch tabs for the user.
+        right = next(p for p, roles in PORTAL_ROLES.items() if user["role"] in roles)
+        raise HTTPException(status_code=403, detail={
+            "code": "wrong_portal", "portal": right,
+            "message": f"This account signs in through the {PORTAL_LABELS[right]} tab. "
+                       "It's selected now — tap Sign in again.",
+        })
 
     token, csrf = create_session(user["id"], ip, request.headers.get("user-agent"))
     _set_cookies(response, token, csrf)
