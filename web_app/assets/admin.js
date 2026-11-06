@@ -1,15 +1,71 @@
-import { api, color, esc, fmtDate, label, mountTopbar, openModal, requireUser, toast } from './api.js';
+import { api, color, esc, fmtDate, label, live, mountTopbar, openModal, requireUser, toast } from './api.js';
 import { countUp, enableAll } from './motion.js';
 
 const $ = (sel) => document.querySelector(sel);
 const me = await requireUser(['admin']);
 mountTopbar(me);
 
+const LOADERS = { overview: loadOverview, users: loadUsers, audit: loadAudit };
+let activeTab = 'overview';
+
 document.querySelectorAll('#tabs button').forEach((btn) => btn.addEventListener('click', () => {
   document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b === btn));
   document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== btn.dataset.tab));
-  ({ overview: loadOverview, users: loadUsers, audit: loadAudit })[btn.dataset.tab]();
+  activeTab = btn.dataset.tab;
+  LOADERS[activeTab]();
 }));
+
+/** Last rendered content per section: live refreshes only touch the DOM when data changed. */
+const rendered = {};
+function changed(key, value) {
+  const sig = JSON.stringify(value);
+  if (rendered[key] === sig) return false;
+  rendered[key] = sig;
+  return true;
+}
+
+/* ---------- live activity feed ---------- */
+const ACTIVITY = {
+  login: ['↪', 'signed in'],
+  logout: ['↩', 'signed out'],
+  login_wrong_portal: ['!', 'used the wrong sign-in portal'],
+  password_change: ['✱', 'changed their password'],
+  patient_register: ['+', 'registered a patient'],
+  patient_view: ['◐', 'opened a patient record'],
+  analysis_run: ['◎', 'analysed a sample'],
+  analysis_rejected: ['✕', 'submitted an image that was rejected'],
+  user_create: ['⚙', 'created a staff account'],
+  user_activate: ['⚙', 'activated an account'],
+  user_deactivate: ['⚙', 'deactivated an account'],
+  user_password_reset: ['⚙', 'reset a password'],
+};
+const QUIET = new Set(['patient_list']);  // logged on every search keystroke; still in the Audit tab
+
+function ago(iso) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 10) return 'just now';
+  if (s < 60) return `${Math.floor(s)} s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  return fmtDate(iso);
+}
+
+let lastSeenAuditId = null;
+function renderActivity(entries) {
+  const shown = entries.filter((e) => !QUIET.has(e.action)).slice(0, 10);
+  const newest = entries.length ? entries[0].id : 0;
+  $('#activity-feed').innerHTML = shown.length ? shown.map((e) => {
+    const failed = e.action.startsWith('login_failed');
+    const [icon, text] = failed ? ['!', 'failed to sign in']
+      : e.action === 'analysis_view' ? ['◉', e.role === 'patient' ? 'viewed their result' : 'opened a result']
+      : ACTIVITY[e.action] || ['•', e.action.replace(/_/g, ' ')];
+    const fresh = lastSeenAuditId !== null && e.id > lastSeenAuditId;
+    return `<div class="activity-item ${fresh ? 'just-arrived' : ''}">
+      <span class="activity-icon" style="${failed || !e.success ? 'color:var(--danger);' : ''}">${icon}</span>
+      <span><span class="who">${esc(e.username || 'unknown')}</span> <span class="muted">${esc(e.role || '')}</span> ${esc(text)}</span>
+      <span class="when">${ago(e.ts)}</span></div>`;
+  }).join('') : '<div class="muted tiny">No activity yet.</div>';
+  lastSeenAuditId = newest;
+}
 
 function showSecret(title, html) {
   $('#secret-title').textContent = title;
@@ -18,25 +74,37 @@ function showSecret(title, html) {
 }
 
 /* ---------- overview ---------- */
-async function loadOverview() {
-  const [stats, audit] = await Promise.all([api('/api/admin/stats'), api('/api/admin/audit?limit=1')]);
+async function loadOverview({ background = false } = {}) {
+  const [stats, audit] = await Promise.all([
+    api('/api/admin/stats', { background }), api('/api/admin/audit?limit=40', { background }),
+  ]);
   const r = stats.users_by_role;
   const total = Object.values(stats.analyses_by_result).reduce((a, b) => a + b, 0);
   const tiles = [
     ['Doctors', r.doctor || 0], ['Nurses', r.nurse || 0], ['Administrators', r.admin || 0],
     ['Patients', stats.patients], ['Analyses', total], ['Audit entries', audit.chain.entries_checked],
   ];
-  $('#overview-stats').innerHTML = tiles.map(([l, v]) => `<div class="stat" data-tilt="6"><div class="v" data-count="${v}">0</div><div class="l">${l}</div></div>`).join('');
-  document.querySelectorAll('#overview-stats [data-count]').forEach((el) => countUp(el, Number(el.dataset.count)));
+  const before = rendered.tiles ? Object.fromEntries(JSON.parse(rendered.tiles)) : null;
+  if (changed('tiles', tiles)) {
+    $('#overview-stats').innerHTML = tiles.map(([l, v]) => {
+      const moved = before && before[l] !== v;
+      return `<div class="stat ${moved ? 'just-arrived' : ''}" data-tilt="6"><div class="v" data-count="${v}">${before ? v : 0}</div><div class="l">${l}</div></div>`;
+    }).join('');
+    if (!before) document.querySelectorAll('#overview-stats [data-count]').forEach((el) => countUp(el, Number(el.dataset.count)));
+  }
+
+  renderActivity(audit.entries);
 
   const rows = Object.entries(stats.analyses_by_result).sort((a, b) => b[1] - a[1]);
   const max = Math.max(1, ...rows.map((x) => x[1]));
-  $('#by-result').innerHTML = rows.length ? rows.map(([k, n]) => `
+  if (changed('byResult', rows)) $('#by-result').innerHTML = rows.length ? rows.map(([k, n]) => `
     <div class="sim-row"><span>${esc(label(k))}</span>
       <span class="track"><i style="background:${color(k)};width:${(n / max) * 100}%"></i></span><span class="num">${n}</span></div>`).join('')
     : '<div class="muted tiny">No analyses recorded yet.</div>';
 
   const m = stats.model_card;
+  const chain = audit.chain;
+  if (!changed('cards', [m, chain.verified, chain.first_broken_id])) { enableAll(); return; }
   $('#model-card').innerHTML = m ? `
     <div style="display:flex;gap:22px;align-items:end;flex-wrap:wrap;">
       <div><div style="font-size:34px;font-weight:800;">${(m.test_accuracy * 100).toFixed(1)}%</div><div class="tiny muted">measured test accuracy</div></div>
@@ -49,7 +117,6 @@ async function loadOverview() {
     <div class="tiny muted">${esc(m.note)} Version ${esc(m.model_version)}, trained ${fmtDate(m.trained_on)}.</div>`
     : '<div class="badge warn">Model not trained</div>';
 
-  const chain = audit.chain;
   $('#security-status').innerHTML = `
     <div style="display:grid;gap:10px;font-size:13.5px;">
       <div>${chain.verified ? '<span class="badge ok"><span class="dot"></span>Audit chain verified</span>' : `<span class="badge bad"><span class="dot"></span>Audit chain BROKEN at entry #${chain.first_broken_id}</span>`}</div>
@@ -62,8 +129,9 @@ async function loadOverview() {
 }
 
 /* ---------- users ---------- */
-async function loadUsers() {
-  const users = await api('/api/admin/users');
+async function loadUsers({ background = false } = {}) {
+  const users = await api('/api/admin/users', { background });
+  if (!changed('users', users)) return;
   $('#users-table').innerHTML = `<tr><th>User</th><th>Role</th><th>Status</th><th>Last sign-in</th><th></th></tr>` + users.map((u) => {
     const locked = u.locked_until && new Date(u.locked_until) > new Date();
     const status = !u.active ? '<span class="badge bad">Deactivated</span>' : locked ? '<span class="badge warn">Locked</span>'
@@ -109,8 +177,9 @@ $('#user-form').addEventListener('submit', async (e) => {
 });
 
 /* ---------- audit ---------- */
-async function loadAudit() {
-  const { chain, entries } = await api('/api/admin/audit?limit=300');
+async function loadAudit({ background = false } = {}) {
+  const { chain, entries } = await api('/api/admin/audit?limit=300', { background });
+  if (!changed('audit', [chain, entries[0]?.id])) return;
   $('#chain-badge').innerHTML = chain.verified
     ? `<span class="badge ok"><span class="dot"></span>Chain verified · ${chain.entries_checked} entries</span>`
     : `<span class="badge bad"><span class="dot"></span>Tampering detected at #${chain.first_broken_id}</span>`;
@@ -124,3 +193,5 @@ async function loadAudit() {
 
 loadOverview();
 enableAll();
+// Everything the doctor/nurse and patient devices do shows up here within ~5 s.
+live(() => LOADERS[activeTab]({ background: true }), 5000);
